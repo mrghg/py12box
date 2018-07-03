@@ -1,0 +1,23 @@
+Calculate transport matrix based on equations in Cunnold, D. M. et al. (1983). 
+The Atmospheric Lifetime Experiment 3. Lifetime Methodology and 
+Application to Three Years of CFCl3 Data. 
+Journal of Geophysical Research, 88(C13), 8379-8400.
+    This function outputs a 12x12 matrix (F),
+calculated by collecting terms in the full equation scheme written out below. 
+Model transport is then calculated as dc/dt=F##c.
+
+Lower troposphere
+    dc[0]+=(c[0]+c[1])/2.*V[0,1] - (c[4]+c[0])/2.*V[4,0]                         - (c[0]-c[1])/T[0,1] + (c[4]-c[0])/T[4,0]
+    dc[1]+=(c[1]+c[2])/2.*V[1,2] - (c[5]+c[1])/2.*V[5,1] - (c[0]+c[1])/2.*V[0,1] - (c[1]-c[2])/T[1,2] + (c[5]-c[1])/T[5,1] + (c[0]-c[1])/T[0,1]
+    dc[2]+=(c[2]+c[3])/2.*V[2,3] - (c[6]+c[2])/2.*V[6,2] - (c[1]+c[2])/2.*V[1,2] - (c[2]-c[3])/T[2,3] + (c[6]-c[2])/T[6,2] + (c[1]-c[2])/T[1,2]
+    dc[3]+=                    -1.*(c[7]+c[3])/2.*V[7,3] - (c[2]+c[3])/2.*V[2,3]                      + (C[7]-c[3])/T[7,3] + (c[2]-c[3])/T[2,3]
+Upper troposphere
+    dc[4]+=5./3.*(c[4]+c[5])/2.*V[4,5] + 5./3.*(c[4]+c[0])/2.*V[4,0]                               - (c[4]-c[5])/T[4,5] - 5./3.*(c[4]-c[0])/T[4,0] + (c[8]-c[4])/T[8,4]
+    dc[5]+=5./3.*(c[5]+c[6])/2.*V[5,6] + 5./3.*(c[5]+c[1])/2.*V[5,1] - 5./3.*(c[4]+c[5])/2.*V[4,5] - (c[5]-c[6])/T[5,6] - 5./3.*(c[5]-c[1])/T[5,1] + (c[9]-c[5])/T[9,5]   + (c[4]-c[5])/T[4,5]
+    dc[6]+=5./3.*(c[6]+c[7])/2.*V[6,7] + 5./3.*(c[6]+c[2])/2.*V[6,2] - 5./3.*(c[5]+c[6])/2.*V[5,6] - (c[6]-c[7])/T[6,7] - 5./3.*(c[6]-c[2])/T[6,2] + (c[10]-c[6])/T[10,6] + (c[5]-c[6])/T[5,6]
+    dc[7]+=                              5./3.*(c[7]+c[3])/2.*V[7,3] - 5./3.*(c[6]+c[7])/2.*V[6,7]                      - 5./3.*(c[7]-c[3])/T[7,3] + (c[11]-c[7])/T[11,7] + (c[6]-c[7])/T[6,7]
+Stratosphere
+    dc[8]+= -1.*(c[8]-c[9])/T[8,9]     - 3./2.*(c[8]-c[4])/T[8,4]
+    dc[9]+= -1.*(c[9]-c[10])/T[9,10]   - 3./2.*(c[9]-c[5])/T[9,5]   + (c[8]-c[9])/T[8,9]
+    dc[10]+=-1.*(c[10]-c[11])/T[10,11] - 3./2.*(c[10]-c[6])/T[10,6] + (c[9]-c[10])/T[9,10]
+    dc[11]+=                           - 3./2.*(c[11]-c[7])/T[11,7] + (c[10]-c[11])/T[10,11]
