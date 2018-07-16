@@ -185,7 +185,7 @@ def model_transport_matrix(i_t, i_v1, t_in, v1_in):
 
 
 
-#@njit()
+@njit()
 def run_model(ic, q, mol_mass, lifetime,
               F, temp, OH, Cl,
               arr_OH = np.array([1.0e-30, 1800.0]),
@@ -203,8 +203,7 @@ def run_model(ic, q, mol_mass, lifetime,
         2d, n_months x n_box_surface
         Monthly emissions into the surface boxes (Gg/yr).
         The length of the simulation is determined by the length of q.
-    mol_mass : ndarray
-        1d, 1
+    mol_mass : float
         Single value of molecular mass (g/mol).
     arr_OH, arr_Cl : ndarray
         1d, 2
@@ -275,7 +274,7 @@ def run_model(ic, q, mol_mass, lifetime,
         raise Exception("Value Error: dt is not a fraction of 30 days")
 
     # Initial conditions and time settings
-    c = ic*1.0e-12*mol_mass[0]/mol_m_air*mass  # ppt to g
+    c = ic*1.0e-12*mol_mass/mol_m_air*mass  # ppt to g
 
     start_ti = 0
     end_ti = n_months*mi_ti
@@ -383,7 +382,7 @@ def run_model(ic, q, mol_mass, lifetime,
     burden = c_month.copy()
     burden = burden/cnt_month
 
-    c_month = burden/mol_mass[0]*mol_m_air*1.0e12  # ppt
+    c_month = burden/mol_mass*mol_m_air*1.0e12  # ppt
     c_month = np.divide(c_month, mass)
 
     emissions = q_model*30*day_to_sec
