@@ -11,66 +11,106 @@ from py12box import core, util
 import os
 import pandas as pd
 
+
+def get_species_parameters(case_dir, species):
+
+    # Get species-specfic parameters
+    ####################################################
+    
+    # Get emissions
+    emissions_df = pd.read_csv(os.path.join(case_dir,
+                                            '%s_emissions.csv' %species),
+                               header=0, index_col=0)
+    time_in = emissions_df.index.values
+
+    # Get time from emissions file
+    n_years = len(time_in)
+    
+    # Work out time frequency and interpolate, if required
+    time_freq = time_in[1] - time_in[0]
+    if time_freq == 1:
+        # Annual emissions. Interpolate to monthly
+        time = np.arange(time_in[0], time_in[-1] + 1 - 1./12, 1/12.)
+        emissions = np.tile(emissions_df.values, (12, 1))
+    else:
+        # Assume monthly emissions
+        time = time_in.copy()
+        emissions = emissions_df.values
+    
+    # Get lifetime
+    lifetime_df = pd.read_csv(os.path.join(case_dir,
+                                           '%s_lifetime.csv' %species),
+                              header = 0, index_col = 0)
+    lifetime = np.tile(lifetime_df.values, (n_years, 1))
+    
+    # Get initial conditions
+    ic = (pd.read_csv(os.path.join(case_dir,
+                                   '%s_initial_conditions.csv' %species),
+                      header = 0).values.astype(np.float64)).flatten()
+    
+    return(time, emissions, ic, lifetime)
+
+
+def get_model_parameters(input_dir, n_years):
+
+    # Get model parameters
+    ###################################################
+    
+    # Get transport parameters and create transport matrix
+    i_t, i_v1, t, v1 = \
+        util.io_r_npz(os.path.join(input_dir,
+                                   'transport.npz'))
+    t = np.tile(t, (n_years, 1))
+    v1 = np.tile(v1, (n_years, 1))
+    
+    # Get OH
+    OH = np.tile(util.io_r_npy(os.path.join(input_dir, 'OH.npy')),
+                 (n_years, 1))
+    
+    # Get Cl
+    Cl = np.tile(util.io_r_npy(os.path.join(input_dir, 'Cl.npy')),
+                 (n_years, 1))
+    
+    # Get temperature
+    temperature = np.tile(util.io_r_npy(os.path.join(input_dir,
+                                                     'temperature.npy')),
+                          (n_years, 1))
+
+    return(i_t, i_v1, t, v1, OH, Cl, temperature)
+
+
+def tile_transport_parameters(i_t, i_v1, t, v1):
+    
+    n_months = t.shape[0]
+    t *= (24.0 * 3600.0)
+    v1 *= (24.0 * 3600.0)
+    F = np.zeros((n_months, 12, 12))
+    for mi in range(0, n_months):
+        F[mi] = core.model_transport_matrix(i_t=i_t, i_v1=i_v1,
+                                            t_in=t[mi],
+                                            v1_in=v1[mi])
+    return(F)
+    
+    
 input_dir = "/Users/chxmr/Work/Projects/py12box/inputs"
 case_dir = "/Users/chxmr/Work/Projects/py12box/example"
 
-def tile(var):
-    r'''Tile input variables
-    '''
-    if len(var) != n_months:
-        var = np.tile(var, (n_years, 1))
-    return(var)
 
+species = "CFC-11"
+mol_mass = 137.3688
 
-n_box = 12    
- 
-# Get emissions
-emissions_df = pd.read_csv(os.path.join(case_dir, 'emissions.csv'), header=0, index_col=0)
-time = emissions_df.index.values
-emissions = emissions_df.values
-
-
-# Get time from emissions file
-n_years = len(emissions)
-n_months = n_years*12
-
-
-# Repeat emissions
-emissions = np.tile(emissions, (12, 1))
-#%%
-
-# Get transport parameters and create transport matrix
-i_t, i_v1, t, v1 = \
-    util.io_r_npz(os.path.join(input_dir, 'transport.npz'))
-t = tile(t * 24.0 * 3600.0)
-v1 = tile(v1 * 24.0 * 3600.0)
-F = np.zeros((n_months, n_box, n_box))
-for mi in range(0, n_months):
-    F[mi] = core.model_transport_matrix(i_t=i_t, i_v1=i_v1,
-                                        t_in=t[mi],
-                                        v1_in=v1[mi])
-
-# Get OH
-OH = tile(util.io_r_npy(os.path.join(input_dir, 'OH.npy')))
-
-# Get Cl
-Cl = tile(util.io_r_npy(os.path.join(input_dir, 'Cl.npy')))
-
-# Get temperature
-temp = tile(util.io_r_npy(os.path.join(input_dir, 'temperature.npy')))
-
-# Get lifetime
-lifetime_df = pd.read_csv(os.path.join(case_dir, 'lifetime.csv'), header = 0, index_col = 0)
-lifetime = tile(lifetime_df.values)
-
-# Get initial conditions
-ic = (pd.read_csv(os.path.join(case_dir, 'initial_conditions.csv'), header = 0).values.astype(np.float64)).flatten()
-
+time, emissions, ic, lifetime = get_species_parameters(case_dir,
+                                                       species)
+i_t, i_v1, t, v1, OH, Cl, temperature = get_model_parameters(input_dir,
+                                                             int(len(time)/12))
+F = tile_transport_parameters(i_t, i_v1, t, v1)
 
 c_month, burden, emissions_out, losses, lifetimes = \
     core.run_model(ic=ic, q=emissions,
-                   mol_mass=100.,
+                   mol_mass=mol_mass,
                    lifetime=lifetime,
                    F=F,
-                   temp=temp,
+                   temp=temperature,
                    Cl=Cl, OH=OH)
+
+
