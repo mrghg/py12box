@@ -29,9 +29,15 @@ emissions_df = pd.read_csv(os.path.join(case_dir, 'emissions.csv'), header=0, in
 time = emissions_df.index.values
 emissions = emissions_df.values
 
+
 # Get time from emissions file
 n_years = len(emissions)
 n_months = n_years*12
+
+
+# Repeat emissions
+emissions = np.tile(emissions, (12, 1))
+#%%
 
 # Get transport parameters and create transport matrix
 i_t, i_v1, t, v1 = \
@@ -58,11 +64,12 @@ lifetime_df = pd.read_csv(os.path.join(case_dir, 'lifetime.csv'), header = 0, in
 lifetime = tile(lifetime_df.values)
 
 # Get initial conditions
-ic = pd.read_csv(os.path.join(case_dir, 'initial_conditions.csv'), header = 0).values.astype(np.float64)
+ic = (pd.read_csv(os.path.join(case_dir, 'initial_conditions.csv'), header = 0).values.astype(np.float64)).flatten()
 
-c_month, burden, emissions, losses, lifetimes = \
+
+c_month, burden, emissions_out, losses, lifetimes = \
     core.run_model(ic=ic, q=emissions,
-                   mol_mass=np.array([100.]),
+                   mol_mass=100.,
                    lifetime=lifetime,
                    F=F,
                    temp=temp,
