@@ -70,7 +70,7 @@ def model_solver_RK4(chi, F, dt):
     return chi
 
 
-#@jit(nopython = True)
+@jit(nopython = True)
 def model_transport_matrix(i_t, i_v1, t_in, v1_in):
     '''Calculate transport matrix
     Based on equations in:
@@ -186,7 +186,7 @@ def model_transport_matrix(i_t, i_v1, t_in, v1_in):
 
 
 @njit()
-def run_model(ic, q, mol_mass, lifetime,
+def model(ic, q, mol_mass, lifetime,
               F, temp, OH, Cl,
               arr_OH = np.array([1.0e-30, 1800.0]),
               arr_Cl = np.array([1.0e-30, 1800.0]),

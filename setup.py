@@ -79,7 +79,7 @@ def get_model_parameters(input_dir, n_years):
     return(i_t, i_v1, t, v1, OH, Cl, temperature)
 
 
-def tile_transport_parameters(i_t, i_v1, t, v1):
+def transport_matrix(i_t, i_v1, t, v1):
     
     n_months = t.shape[0]
     t *= (24.0 * 3600.0)
@@ -91,26 +91,35 @@ def tile_transport_parameters(i_t, i_v1, t, v1):
                                             v1_in=v1[mi])
     return(F)
     
+
+if __name__ == "__main__":
+    '''
+    If run as main, run example
+    '''
     
-input_dir = "/Users/chxmr/Work/Projects/py12box/inputs"
-case_dir = "/Users/chxmr/Work/Projects/py12box/example"
+    import matplotlib.pyplot as plt
+    
+    dir_path = os.path.dirname(os.path.realpath(__file__))
+    input_dir = os.path.join(dir_path, "inputs")
+    case_dir = os.path.join(dir_path, "example")
+    
+    species = "CFC-11"
+    mol_mass = 137.3688
+    
+    time, emissions, ic, lifetime = get_species_parameters(case_dir,
+                                                           species)
+    i_t, i_v1, t, v1, OH, Cl, temperature = get_model_parameters(input_dir,
+                                                                 int(len(time)/12))
+    F = transport_matrix(i_t, i_v1, t, v1)
+    
+    c_month, burden, emissions_out, losses, lifetimes = \
+        core.model(ic=ic, q=emissions,
+                       mol_mass=mol_mass,
+                       lifetime=lifetime,
+                       F=F,
+                       temp=temperature,
+                       Cl=Cl, OH=OH)
 
-
-species = "CFC-11"
-mol_mass = 137.3688
-
-time, emissions, ic, lifetime = get_species_parameters(case_dir,
-                                                       species)
-i_t, i_v1, t, v1, OH, Cl, temperature = get_model_parameters(input_dir,
-                                                             int(len(time)/12))
-F = tile_transport_parameters(i_t, i_v1, t, v1)
-
-c_month, burden, emissions_out, losses, lifetimes = \
-    core.run_model(ic=ic, q=emissions,
-                   mol_mass=mol_mass,
-                   lifetime=lifetime,
-                   F=F,
-                   temp=temperature,
-                   Cl=Cl, OH=OH)
-
-
+    plt.plot(time, c_month[:, 0])
+    plt.plot(time, c_month[:, 3])
+    plt.ylabel("%s (pmol mol$^{-1}$)" %species)
