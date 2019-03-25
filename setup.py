@@ -7,7 +7,8 @@ Created on Wed Jun 27 12:05:03 2018
 """
 
 import numpy as np
-from py12box import core, util
+import core
+import util
 import os
 import pandas as pd
 

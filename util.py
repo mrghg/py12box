@@ -10,7 +10,7 @@ Version History
 2.0 20180112    EC  Function updates; docstrings update;
                     and numpy save file support.
 """
-import configparser
+#import configparser
 import numpy as np
 import pandas as pd
 import scipy
