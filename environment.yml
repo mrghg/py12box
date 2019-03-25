@@ -1,11 +1,9 @@
 name: py12box
 channels:
   - conda-forge
-  - conda
 dependencies:
   - numpy
   - scipy
   - matplotlib
   - numba
-  - os
   - pandas
