@@ -150,24 +150,24 @@ def io_c_csv2npy(fpath1, fpath2):
     io_w_npy(fpath2, io_r_csv(fpath1))
 
 
-def read_config(config_file, env='default paths'):
-    """Read config file
-
-    Parameters
-    ----------
-    config_file : file-like object, string, or pathlib.Path
-        Path of the configuration file.
-    env : str
-        Configuration environment.
-
-    Returns
-    -------
-    c : dict-like
-        Configured objects.
-
-    """
-    c = configparser.ConfigParser()
-    c.sections()
-    c.read(config_file)
-    c = c[env]
-    return c
+# def read_config(config_file, env='default paths'):
+#     """Read config file
+#
+#     Parameters
+#     ----------
+#     config_file : file-like object, string, or pathlib.Path
+#         Path of the configuration file.
+#     env : str
+#         Configuration environment.
+#
+#     Returns
+#     -------
+#     c : dict-like
+#         Configured objects.
+#
+#     """
+#     c = configparser.ConfigParser()
+#     c.sections()
+#     c.read(config_file)
+#     c = c[env]
+#     return c
