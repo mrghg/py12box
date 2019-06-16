@@ -72,7 +72,7 @@ def model_solver_RK4(chi, F, dt):
 
 @jit(nopython = True)
 def model_transport_matrix(i_t, i_v1, t_in, v1_in):
-    '''Calculate transport matrix
+    """Calculate transport matrix
     Based on equations in:
         Cunnold, D. M. et al. (1983).
         The Atmospheric Lifetime Experiment 3. Lifetime Methodology and
@@ -105,7 +105,7 @@ def model_transport_matrix(i_t, i_v1, t_in, v1_in):
         2d, n_box x n_box
         Transport matrix
 
-    '''
+    """
     F = np.zeros((12, 12))
     t = np.zeros((12, 12))
     v = np.zeros((12, 12))
