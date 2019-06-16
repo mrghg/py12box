@@ -150,24 +150,22 @@ def io_c_csv2npy(fpath1, fpath2):
     io_w_npy(fpath2, io_r_csv(fpath1))
 
 
-# def read_config(config_file, env='default paths'):
-#     """Read config file
-#
-#     Parameters
-#     ----------
-#     config_file : file-like object, string, or pathlib.Path
-#         Path of the configuration file.
-#     env : str
-#         Configuration environment.
-#
-#     Returns
-#     -------
-#     c : dict-like
-#         Configured objects.
-#
-#     """
-#     c = configparser.ConfigParser()
-#     c.sections()
-#     c.read(config_file)
-#     c = c[env]
-#     return c
+def emissions_write(time, emissions,
+                    project = None,
+                    case = None,
+                    species = None):
+    '''
+    Write emissions file
+    
+    Args:
+        time: N-element pandas datetime for start of each emissions time period
+        emissions: 4 x N element array of emissions values in Gg
+    '''
+    
+    import pandas as pd
+    
+    #TODO: FINISH THIS
+    
+    
+    
+    

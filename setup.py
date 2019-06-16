@@ -11,15 +11,19 @@ import core
 import util
 import os
 import pandas as pd
+from pathlib import Path
 
 
-def get_species_parameters(case_dir, species):
+def get_species_parameters(project_directory,
+                           case,
+                           species):
     # Get species-specfic parameters
     ####################################################
 
+    case_dir = project_directory / case
+
     # Get emissions
-    emissions_df = pd.read_csv(os.path.join(case_dir,
-                                            '%s_emissions.csv' % species),
+    emissions_df = pd.read_csv(case_dir / ("%s_emissions.csv" % species),
                                header=0, index_col=0)
     time_in = emissions_df.index.values
 
@@ -38,14 +42,12 @@ def get_species_parameters(case_dir, species):
         emissions = emissions_df.values
 
     # Get lifetime
-    lifetime_df = pd.read_csv(os.path.join(case_dir,
-                                           '%s_lifetime.csv' % species),
+    lifetime_df = pd.read_csv(case_dir / ('%s_lifetime.csv' % species),
                               header=0, index_col=0)
     lifetime = np.tile(lifetime_df.values, (n_years, 1))
 
     # Get initial conditions
-    ic = (pd.read_csv(os.path.join(case_dir,
-                                   '%s_initial_conditions.csv' % species),
+    ic = (pd.read_csv(case_dir / ('%s_initial_conditions.csv' % species),
                       header=0).values.astype(np.float64)).flatten()
 
     return (time, emissions, ic, lifetime)
@@ -97,15 +99,21 @@ if __name__ == "__main__":
 
     import matplotlib.pyplot as plt
 
-    dir_path = os.path.dirname(os.path.realpath(__file__))
-    input_dir = os.path.join(dir_path, "inputs")
-    case_dir = os.path.join(dir_path, "example")
+    dir_path = Path(__file__).parent
+    input_dir = dir_path / "inputs"
+    project_dir = dir_path / "example"
 
+    species_info = pd.read_csv(input_dir / "species_info.csv",
+                               index_col = "Species")
+
+    case = "CFC-11_example"
     species = "CFC-11"
-    mol_mass = 137.3688
+    mol_mass = species_info["Molecular mass (g/mol)"][species]
 
-    time, emissions, ic, lifetime = get_species_parameters(case_dir,
+    time, emissions, ic, lifetime = get_species_parameters(project_dir,
+                                                           case,
                                                            species)
+    
     i_t, i_v1, t, v1, OH, Cl, temperature = get_model_parameters(input_dir,
                                                                  int(len(time) / 12))
     F = transport_matrix(i_t, i_v1, t, v1)
