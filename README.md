@@ -4,4 +4,6 @@ This is a Python version of the AGAGE 12-box model described (first as a 9-box m
 
 This is a work in progress, and won't be ready for public use for a few more months.
 
+See index.ipynb for usage.
+
 [![Binder](https://mybinder.org/badge_logo.svg)](https://mybinder.org/v2/gh/mrghg/py12box.git/master?filepath=index.ipynb)
