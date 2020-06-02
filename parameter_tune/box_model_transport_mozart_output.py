@@ -16,14 +16,14 @@ import pandas as pd
 import numpy as np
 import glob
 from acrg_grid import areagrid
-import cpickle as pickle
+import pickle
 
 acrg_path = paths.acrg
 
 with open(join(acrg_path, "acrg_site_info.json")) as f:
     site_info=json.load(f)
 
-files = sorted(glob.glob("/home/chxmr/work/py12box_parameters/co2_lifetime.mz4.h0.*.nc"))
+files = sorted(glob.glob("/home/chxmr/work/py12box_parameters/co2_lifetime.mz4.h0.*00.nc"))
 
 # Get MOZART grid
 with xr.open_dataset(files[0], decode_times=False) as ds:
@@ -65,14 +65,14 @@ stations = {"MHD": {"box":0},
 for s in stations:
 
     # Find nearest grid cell
-    if site_info[s]["longitude"] < 0.:
-        site_lon = 360. + site_info[s]["longitude"]
+    if site_info[s]["AGAGE"]["longitude"] < 0.:
+        site_lon = 360. + site_info[s]["AGAGE"]["longitude"]
     else:
-        site_lon = site_info[s]["longitude"]
+        site_lon = site_info[s]["AGAGE"]["longitude"]
     loni = bisect(lon, site_lon)
     stations[s]["loni"] = loni
 
-    lati = bisect(lat, site_info[s]["latitude"])
+    lati = bisect(lat, site_info[s]["AGAGE"]["latitude"])
     stations[s]["lati"] = lati
 
     # empty array to store monthly means
