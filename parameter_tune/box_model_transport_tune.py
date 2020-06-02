@@ -11,15 +11,19 @@ import pickle
 import pandas as pd
 from pathlib import Path
 import matplotlib.pyplot as plt
-from py12box import setup, core
 import matplotlib as mpl
 import time as systime
+from py12box import setup, core
+from pyprojroot import here
 
 mpl.style.use('ggplot')
 
-py12box_path = Path(__file__).parents[1] / "py12box"
-py12box_projects_path = Path(__file__).parents[1] / "py12box_projects/"
+py12box_path = here("./")
+project_path = here("./parameter_tune/parameter_tune_data")
 
+case = "CO2_2015"
+
+#TODO: MOVE THIS FILE INTO THE REPO (under parameter_tune_data):
 with open("/home/chxmr/work/py12box_parameters/co2_boxed_up.p", "rb") as f:
     box_data = pickle.load(f)
     
@@ -30,20 +34,17 @@ df = pd.DataFrame(index = np.linspace(2015., 2016. - 1./12., num = 12),
                   data = q_mozart.T/1e6,
                   columns = ["box_1", "box_2", "box_3", "box_4"])
 
-df.to_csv(py12box_projects_path / "CO2_emissions.csv")
+df.to_csv(py12box_project_path / case / "CO2_emissions.csv")
 
-dir_path = Path(__file__).parent
 input_dir = py12box_path / "inputs"
-project_dir = py12box_projects_path / "parameter_tune"
 
 species_info = pd.read_csv(input_dir / "species_info.csv",
                            index_col = "Species")
 
-case = "CO2_2015"
 species = "CO2"
 mol_mass = species_info["Molecular mass (g/mol)"][species]
 
-time, emissions, ic, lifetime = setup.get_species_parameters(project_dir,
+time, emissions, ic, lifetime = setup.get_species_parameters(project_path,
                                                              case,
                                                              species)
 
