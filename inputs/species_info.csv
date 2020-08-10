@@ -1,4 +1,4 @@
-﻿Species,Group,Pollutant string,GWP,Molecular mass (g/mol),Unit,Radiative Efficiency (W/m2/ppb),OH_A,OH_ER,OH_F,OH_G
+Species,Group,Pollutant string,GWP,Molecular mass (g/mol),Unit,Radiative Efficiency (W/m2/ppb),OH_A,OH_ER,OH_F,OH_G
 CFC-11,CFCs,CFC-11,4750,137.3688,ppt,0.25,1.00E-12,-3700,,
 CFC-12,CFCs,CFC-12,10900,120.914,ppt,0.32,1.00E-12,-3600,,
 CFC-13,CFCs,CFC-13,14400,104.46,ppt,0.25,1.00E-30,-1600,,

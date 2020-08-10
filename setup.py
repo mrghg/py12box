@@ -12,9 +12,19 @@ import util
 import os
 import pandas as pd
 from pathlib import Path
+from pyprojroot import here
 
+def get_species_parameters(species):
+    
+    df = pd.read_csv(here() / "inputs/species_info.csv",
+                     index_col = "Species")
 
-def get_species_parameters(project_directory,
+    return(df["Molecular mass (g/mol)"][species],
+           df["OH_A"][species],
+           df["OH_ER"][species])
+    
+
+def get_case_parameters(project_directory,
                            case,
                            species):
     # Get species-specfic parameters
@@ -35,7 +45,7 @@ def get_species_parameters(project_directory,
     if time_freq == 1:
         # Annual emissions. Interpolate to monthly
         time = np.arange(time_in[0], time_in[-1] + 1 - 1. / 12, 1 / 12.)
-        emissions = np.tile(emissions_df.values, (12, 1))
+        emissions = np.repeat(emissions_df.values, 12, axis = 0)
     else:
         # Assume monthly emissions
         time = time_in.copy()
@@ -81,6 +91,7 @@ def get_model_parameters(input_dir, n_years):
 
 
 def transport_matrix(i_t, i_v1, t, v1):
+    
     n_months = t.shape[0]
     t *= (24.0 * 3600.0)
     v1 *= (24.0 * 3600.0)
@@ -90,44 +101,4 @@ def transport_matrix(i_t, i_v1, t, v1):
                                             t_in=t[mi],
                                             v1_in=v1[mi])
     return (F)
-
-
-if __name__ == "__main__":
-    '''
-    If run as main, run example
-    '''
-
-    import matplotlib.pyplot as plt
-
-    dir_path = Path(__file__).parent
-    input_dir = dir_path / "inputs"
-    project_dir = dir_path / "example"
-
-    species_info = pd.read_csv(input_dir / "species_info.csv",
-                               index_col = "Species")
-
-    case = "CFC-11_example"
-    species = "CFC-11"
-    mol_mass = species_info["Molecular mass (g/mol)"][species]
-
-    time, emissions, ic, lifetime = get_species_parameters(project_dir,
-                                                           case,
-                                                           species)
-    
-    i_t, i_v1, t, v1, OH, Cl, temperature = get_model_parameters(input_dir,
-                                                                 int(len(time) / 12))
-    F = transport_matrix(i_t, i_v1, t, v1)
-
-    c_month, burden, emissions_out, losses, lifetimes = \
-        core.model(ic=ic, q=emissions,
-                   mol_mass=mol_mass,
-                   lifetime=lifetime,
-                   F=F,
-                   temp=temperature,
-                   Cl=Cl, OH=OH)
-
-    plt.plot(time, c_month[:, 0])
-    plt.plot(time, c_month[:, 3])
-    plt.ylabel("%s (pmol mol$^{-1}$)" % species)
-    plt.show()
 

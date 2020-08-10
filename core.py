@@ -41,7 +41,7 @@ import numpy as np
 
 
 @njit()
-def model_solver_RK4(chi, F, dt):
+def model_solver_rk4(chi, F, dt):
     """Vectorized Runge-Kutta
 
     Parameters
@@ -63,14 +63,14 @@ def model_solver_RK4(chi, F, dt):
 
     """
     A = np.dot(F, chi)
-    B = np.dot(F, (chi + dt*A/2.0))
-    C = np.dot(F, (chi + dt*B/2.0))
-    D = np.dot(F, (chi + dt*C))
-    chi += dt/6.0*(A + 2.0*(B + C) + D)
+    B = np.dot(F, (chi + dt * A / 2.0))
+    C = np.dot(F, (chi + dt * B / 2.0))
+    D = np.dot(F, (chi + dt * C))
+    chi += dt / 6.0 * (A + 2.0 * (B + C) + D)
     return chi
 
 
-@jit(nopython = True)
+@jit(nopython=True)
 def model_transport_matrix(i_t, i_v1, t_in, v1_in):
     """Calculate transport matrix
     Based on equations in:
@@ -111,91 +111,90 @@ def model_transport_matrix(i_t, i_v1, t_in, v1_in):
     v = np.zeros((12, 12))
 
     for i in range(0, len(i_v1)):
-        v[i_v1[i, 1], i_v1[i, 0]] = 1.0/v1_in[i]
+        v[i_v1[i, 1], i_v1[i, 0]] = 1.0 / v1_in[i]
     for i in range(0, len(i_t)):
         t[i_t[i, 1], i_t[i, 0]] = t_in[i]
 
-    F[0, 0] = v[1, 0]/2.0 - v[0, 4]/2.0 - 1.0/t[1, 0] - 1.0/t[0, 4]
-    F[0, 1] = v[1, 0]/2.0 + 1.0/t[1, 0]
-    F[0, 4] = - v[0, 4]/2.0 + 1.0/t[0, 4]
+    F[0, 0] = v[1, 0] / 2.0 - v[0, 4] / 2.0 - 1.0 / t[1, 0] - 1.0 / t[0, 4]
+    F[0, 1] = v[1, 0] / 2.0 + 1.0 / t[1, 0]
+    F[0, 4] = - v[0, 4] / 2.0 + 1.0 / t[0, 4]
 
-    F[1, 0] = - v[1, 0]/2.0 + 1.0/t[1, 0]
-    F[1, 1] = v[2, 1]/2.0 - v[1, 5]/2.0 - v[1, 0]/2.0 - \
-                         1.0/t[2, 1] - 1.0/t[1, 5] - 1.0/t[1, 0]
-    F[1, 2] = v[2, 1]/2.0 + 1.0/t[2, 1]
-    F[1, 5] = - v[1, 5]/2.0 + 1.0/t[1, 5]
+    F[1, 0] = - v[1, 0] / 2.0 + 1.0 / t[1, 0]
+    F[1, 1] = v[2, 1] / 2.0 - v[1, 5] / 2.0 - v[1, 0] / 2.0 - \
+              1.0 / t[2, 1] - 1.0 / t[1, 5] - 1.0 / t[1, 0]
+    F[1, 2] = v[2, 1] / 2.0 + 1.0 / t[2, 1]
+    F[1, 5] = - v[1, 5] / 2.0 + 1.0 / t[1, 5]
 
-    F[2, 1] = -v[2, 1]/2.0 + 1.0/t[2, 1]
-    F[2, 2] = v[3, 2]/2.0 - v[2, 6]/2.0 - v[2, 1]/2.0 - \
-              1.0/t[3, 2] - 1.0/t[2, 6] - 1.0/t[2, 1]
-    F[2, 3] = v[3, 2]/2.0 + 1.0/t[3, 2]
-    F[2, 6] = -1.0*v[2, 6]/2.0 + 1.0/t[2, 6]
+    F[2, 1] = -v[2, 1] / 2.0 + 1.0 / t[2, 1]
+    F[2, 2] = v[3, 2] / 2.0 - v[2, 6] / 2.0 - v[2, 1] / 2.0 - \
+              1.0 / t[3, 2] - 1.0 / t[2, 6] - 1.0 / t[2, 1]
+    F[2, 3] = v[3, 2] / 2.0 + 1.0 / t[3, 2]
+    F[2, 6] = -1.0 * v[2, 6] / 2.0 + 1.0 / t[2, 6]
 
-    F[3, 2] = -v[3, 2]/2.0 + 1.0/t[3, 2]
-    F[3, 3] = -v[3, 7]/2.0 - v[3, 2]/2.0 - 1.0/t[3, 7] - 1.0/t[3, 2]
-    F[3, 7] = -v[3, 7]/2.0 + 1.0/t[3, 7]
+    F[3, 2] = -v[3, 2] / 2.0 + 1.0 / t[3, 2]
+    F[3, 3] = -v[3, 7] / 2.0 - v[3, 2] / 2.0 - 1.0 / t[3, 7] - 1.0 / t[3, 2]
+    F[3, 7] = -v[3, 7] / 2.0 + 1.0 / t[3, 7]
 
-    F[4, 0] = 5.0/3.0*v[0, 4]/2.0 + 5.0/3.0/t[0, 4]
-    F[4, 4] = 5.0/3.0*v[5, 4]/2.0 + 5.0/3.0*v[0, 4]/2.0 - \
-              1.0/t[5, 4] - 5.0/3.0/t[0, 4] - 1.0/t[4, 8]
-    F[4, 5] = 5.0/3.0*v[5, 4]/2.0 + 1.0/t[5, 4]
-    F[4, 8] = 1.0/t[4, 8]
+    F[4, 0] = 5.0 / 3.0 * v[0, 4] / 2.0 + 5.0 / 3.0 / t[0, 4]
+    F[4, 4] = 5.0 / 3.0 * v[5, 4] / 2.0 + 5.0 / 3.0 * v[0, 4] / 2.0 - \
+              1.0 / t[5, 4] - 5.0 / 3.0 / t[0, 4] - 1.0 / t[4, 8]
+    F[4, 5] = 5.0 / 3.0 * v[5, 4] / 2.0 + 1.0 / t[5, 4]
+    F[4, 8] = 1.0 / t[4, 8]
 
-    F[5, 1] = 5.0/3.0*v[1, 5]/2.0 + 5.0/3.0/t[1, 5]
-    F[5, 4] = -5.0/3.0*v[5, 4]/2.0 + 1.0/t[5, 4]
-    F[5, 5] = 5.0/3.0*v[6, 5]/2.0 + 5.0/3.0*v[1, 5]/2.0 - \
-              5.0/3.0*v[5, 4]/2.0 - 1.0/t[6, 5] - \
-              5.0/3.0/t[1, 5] - 1.0/t[5, 9] - 1.0/t[5, 4]
-    F[5, 6] = 5.0/3.0*v[6, 5]/2.0 + 1.0/t[6, 5]
-    F[5, 9] = 1.0/t[5, 9]
+    F[5, 1] = 5.0 / 3.0 * v[1, 5] / 2.0 + 5.0 / 3.0 / t[1, 5]
+    F[5, 4] = -5.0 / 3.0 * v[5, 4] / 2.0 + 1.0 / t[5, 4]
+    F[5, 5] = 5.0 / 3.0 * v[6, 5] / 2.0 + 5.0 / 3.0 * v[1, 5] / 2.0 - \
+              5.0 / 3.0 * v[5, 4] / 2.0 - 1.0 / t[6, 5] - \
+              5.0 / 3.0 / t[1, 5] - 1.0 / t[5, 9] - 1.0 / t[5, 4]
+    F[5, 6] = 5.0 / 3.0 * v[6, 5] / 2.0 + 1.0 / t[6, 5]
+    F[5, 9] = 1.0 / t[5, 9]
 
-    F[6, 2] = 5.0/3.0*v[2, 6]/2.0 + 5.0/3.0/t[2, 6]
-    F[6, 5] = -5.0/3.0*v[6, 5]/2.0 + 1.0/t[6, 5]
-    F[6, 6] = 5.0/3.0*v[7, 6]/2.0 + 5.0/3.0*v[2, 6]/2.0 - \
-              5.0/3.0*v[6, 5]/2.0 - 1.0/t[7, 6] - \
-              5.0/3.0/t[2, 6] - 1.0/t[6, 10] - 1.0/t[6, 5]
-    F[6, 7] = 5.0/3.0*v[7, 6]/2.0 + 1.0/t[7, 6]
-    F[6, 10] = 1.0/t[6, 10]
+    F[6, 2] = 5.0 / 3.0 * v[2, 6] / 2.0 + 5.0 / 3.0 / t[2, 6]
+    F[6, 5] = -5.0 / 3.0 * v[6, 5] / 2.0 + 1.0 / t[6, 5]
+    F[6, 6] = 5.0 / 3.0 * v[7, 6] / 2.0 + 5.0 / 3.0 * v[2, 6] / 2.0 - \
+              5.0 / 3.0 * v[6, 5] / 2.0 - 1.0 / t[7, 6] - \
+              5.0 / 3.0 / t[2, 6] - 1.0 / t[6, 10] - 1.0 / t[6, 5]
+    F[6, 7] = 5.0 / 3.0 * v[7, 6] / 2.0 + 1.0 / t[7, 6]
+    F[6, 10] = 1.0 / t[6, 10]
 
-    F[7, 3] = 5.0/3.0*v[3, 7]/2.0 + 5.0/3.0/t[3, 7]
-    F[7, 6] = -5.0/3.0*v[7, 6]/2.0 + 1.0/t[7, 6]
-    F[7, 7] = 5.0/3.0*v[3, 7]/2.0 - 5.0/3.0*v[7, 6]/2.0 - \
-              5.0/3.0/t[3, 7] - 1.0/t[7, 11] - 1.0/t[7, 6]
-    F[7, 11] = 1.0/t[7, 11]
+    F[7, 3] = 5.0 / 3.0 * v[3, 7] / 2.0 + 5.0 / 3.0 / t[3, 7]
+    F[7, 6] = -5.0 / 3.0 * v[7, 6] / 2.0 + 1.0 / t[7, 6]
+    F[7, 7] = 5.0 / 3.0 * v[3, 7] / 2.0 - 5.0 / 3.0 * v[7, 6] / 2.0 - \
+              5.0 / 3.0 / t[3, 7] - 1.0 / t[7, 11] - 1.0 / t[7, 6]
+    F[7, 11] = 1.0 / t[7, 11]
 
-    F[8, 4] = 3.0/2.0/t[4, 8]
-    F[8, 8] = -1.0/t[9, 8] - 3.0/2.0/t[4, 8]
-    F[8, 9] = 1.0/t[9, 8]
+    F[8, 4] = 3.0 / 2.0 / t[4, 8]
+    F[8, 8] = -1.0 / t[9, 8] - 3.0 / 2.0 / t[4, 8]
+    F[8, 9] = 1.0 / t[9, 8]
 
-    F[9, 5] = 3.0/2.0/t[5, 9]
-    F[9, 8] = 1.0/t[9, 8]
-    F[9, 9] = -1.0/t[10, 9] - 3.0/2.0/t[5, 9] - 1.0/t[9, 8]
-    F[9, 10] = 1.0/t[10, 9]
+    F[9, 5] = 3.0 / 2.0 / t[5, 9]
+    F[9, 8] = 1.0 / t[9, 8]
+    F[9, 9] = -1.0 / t[10, 9] - 3.0 / 2.0 / t[5, 9] - 1.0 / t[9, 8]
+    F[9, 10] = 1.0 / t[10, 9]
 
-    F[10, 6] = 3.0/2.0/t[6, 10]
-    F[10, 9] = 1.0/t[10, 9]
-    F[10, 10] = -1.0/t[11, 10] - 3.0/2.0/t[6, 10] - 1.0/t[10, 9]
-    F[10, 11] = 1.0/t[11, 10]
+    F[10, 6] = 3.0 / 2.0 / t[6, 10]
+    F[10, 9] = 1.0 / t[10, 9]
+    F[10, 10] = -1.0 / t[11, 10] - 3.0 / 2.0 / t[6, 10] - 1.0 / t[10, 9]
+    F[10, 11] = 1.0 / t[11, 10]
 
-    F[11, 7] = 3.0/2.0/t[7, 11]
-    F[11, 10] = 1.0/t[11, 10]
-    F[11, 11] = -3.0/2.0/t[7, 11] - 1.0/t[11, 10]
-    
+    F[11, 7] = 3.0 / 2.0 / t[7, 11]
+    F[11, 10] = 1.0 / t[11, 10]
+    F[11, 11] = -3.0 / 2.0 / t[7, 11] - 1.0 / t[11, 10]
+
     return F
-
 
 
 @njit()
 def model(ic, q, mol_mass, lifetime,
-              F, temp, OH, Cl,
-              arr_OH = np.array([1.0e-30, 1800.0]),
-              arr_Cl = np.array([1.0e-30, 1800.0]),
-              dt = 2.0*24.0*3600.0,
-              mass = 5.1170001e+18*1000*np.array([0.125, 0.125, 0.125, 0.125,
-                                                  0.075, 0.075, 0.075, 0.075,
-                                                  0.050, 0.050, 0.050, 0.050])
-              ):
-    '''Main model code
+          F, temp, oh, cl,
+          arr_oh=np.array([1.0e-30, -1800.0]),
+          arr_cl=np.array([1.0e-30, -1800.0]),
+          dt=2. * 24. * 3600.,
+          mass=5.1170001e+18 * 1000 * np.array([0.125, 0.125, 0.125, 0.125,
+                                                0.075, 0.075, 0.075, 0.075,
+                                                0.050, 0.050, 0.050, 0.050])
+          ):
+    """Main model code
     ic : ndarray
         1d, n_box
         Initial conditions of each boxes (pmol/mol) (~pptv).
@@ -243,13 +242,13 @@ def model(ic, q, mol_mass, lifetime,
     lifetimes : dict
         3d, (n_resolved_losses+total) x n_months x n_box.
         Lifetimes calculated from individual time steps (year).
-    '''
+    """
     # =========================================================================
     #     Set constants
     # =========================================================================
     # Constants
-    day_to_sec = 24.0*3600.0
-    year_to_sec = 365.25*day_to_sec
+    day_to_sec = 24.0 * 3600.0
+    year_to_sec = 365.25 * day_to_sec
     mol_m_air = 28.97  # dry molecular mass of air in g/mol
 
     n_months = len(q)
@@ -258,109 +257,129 @@ def model(ic, q, mol_mass, lifetime,
     # =========================================================================
     #     Process input data
     # =========================================================================
-    # Arrhenius constants: assume inert if no specified
-    #arr_A_OH, arr_ER_OH = get_arr(arr_OH, np.array([1.0e-30, 1800.0]))
-    #arr_A_Cl, arr_ER_Cl = get_arr(arr_Cl, np.array([1.0e-30, 1800.0]))
 
-    # Emissions
-    q_model = np.zeros((n_months, n_box))
-    q_model[:, 0:len(q[0])] = q*1.0e9/year_to_sec  # g/s
+    # Emissions in g/s
+    q_gs = np.zeros((n_months, n_box))
+    q_gs[:, 0:len(q[0])] = q * 1.0e9 / year_to_sec  # g/s
 
     # Sub-time-step
-    mi_ti = 30.0*day_to_sec/dt
+    mi_ti = 30.0 * day_to_sec / dt
     if 30.0 % mi_ti == 0.0:
         mi_ti = int(mi_ti)
     else:
         raise Exception("Value Error: dt is not a fraction of 30 days")
 
-    # Initial conditions and time settings
-    c = ic*1.0e-12*mol_mass/mol_m_air*mass  # ppt to g
+    # Initial burden (c in g)
+    c = ic * 1.0e-12 * mol_mass / mol_m_air * mass  # ppt to g
 
     start_ti = 0
-    end_ti = n_months*mi_ti
+    end_ti = n_months * mi_ti
 
-    dt_scaled = dt*365.0/360.0
+    dt_scaled = dt * 365. / 360.
 
-    # Multiply factors
-    loss_OH_factor = dt_scaled*arr_OH[0]*np.exp(-arr_OH[1]/temp)*OH
-    loss_Cl_factor = dt_scaled*arr_Cl[0]*np.exp(-arr_OH[1]/temp)*Cl
-    loss_other_factor = dt_scaled/lifetime/year_to_sec
-    emissions_dt = dt_scaled*q_model
+    # Loss factors (i.e. independent of c at this stage)
+    # Unit-less (will multiply c to get loss in g)
+    loss_oh_factor = dt_scaled * arr_oh[0] * np.exp(arr_oh[1] / temp) * oh
+    loss_cl_factor = dt_scaled * arr_cl[0] * np.exp(arr_cl[1] / temp) * cl
+    loss_other_factor = dt_scaled / lifetime / year_to_sec
 
+    # Time-integrated emissions for each step (g)
+    q_g = dt_scaled * q_gs
 
     # =========================================================================
-    #     Output Array
+    #     Output Arrays
     # =========================================================================
     c_month = np.zeros((n_months, n_box))
     cnt_month = np.zeros((n_months, n_box))
+    cnt_global_month = np.zeros(n_months)
 
-    burden = np.zeros((n_months, n_box))
-
-    emissions = np.zeros((n_months, n_box))
-
-    loss_OH = np.zeros((n_months, n_box))
-    loss_Cl = np.zeros((n_months, n_box))
+    loss_oh = np.zeros((n_months, n_box))
+    loss_cl = np.zeros((n_months, n_box))
     loss_other = np.zeros((n_months, n_box))
 
-    lifetime_OH = np.zeros((n_months, n_box))
-    lifetime_Cl = np.zeros((n_months, n_box))
+    lifetime_oh = np.zeros((n_months, n_box))
+    lifetime_cl = np.zeros((n_months, n_box))
     lifetime_other = np.zeros((n_months, n_box))
     lifetime_total = np.zeros((n_months, n_box))
 
-    # =========================================================================
-    #     Run model
-    #       Time stepping: Speed matters, not readability
-    #       Hence minimise accessing arrays
-    # =========================================================================
+    global_lifetime_oh = np.zeros(n_months)
+    global_lifetime_cl = np.zeros(n_months)
+    global_lifetime_other = np.zeros(n_months)
+    global_lifetime_total = np.zeros(n_months)
+
+    """
+    Run model
+    ti is instantaneous timestep
+    mi is month index (0 - 11)
+    """
     for ti in range(start_ti, end_ti):
+
+        # Determine if we're at the start of the month
         mi_ti_cnt = ti % mi_ti
+
         if not mi_ti_cnt:
-            mi = int(ti/mi_ti)
+            # Month index
+            mi = int(ti / mi_ti)
 
             # Month specific constants
-            loss_OH_factor_mi = loss_OH_factor[mi]
-            loss_Cl_factor_mi = loss_Cl_factor[mi]
+            loss_oh_factor_mi = loss_oh_factor[mi]
+            loss_cl_factor_mi = loss_cl_factor[mi]
             loss_other_factor_mi = loss_other_factor[mi]
-            emissions_mi = emissions_dt[mi]
+            q_mi = q_g[mi]
             F_mi = F[mi]
 
-            # Initialise totals
+            # Initialise running totals
             c_mi = np.zeros(n_box)
             cnt_mi = np.zeros(n_box)
-            loss_OH_mi = np.zeros(n_box)
-            loss_Cl_mi = np.zeros(n_box)
+
+            loss_oh_mi = np.zeros(n_box)
+            loss_cl_mi = np.zeros(n_box)
             loss_other_mi = np.zeros(n_box)
-            lifetime_OH_mi = np.zeros(n_box)
-            lifetime_Cl_mi = np.zeros(n_box)
+
+            lifetime_oh_mi = np.zeros(n_box)
+            lifetime_cl_mi = np.zeros(n_box)
             lifetime_other_mi = np.zeros(n_box)
             lifetime_total_mi = np.zeros(n_box)
 
+            global_lifetime_oh_mi = 0.
+            global_lifetime_cl_mi = 0.
+            global_lifetime_other_mi = 0.
+            global_lifetime_total_mi = 0.
+
         # Step forward solver
-        c = model_solver_RK4(c/mass, F_mi, dt) * mass
-        
-        # Loss
-        loss_OH_ti = c*loss_OH_factor_mi
-        loss_Cl_ti = c*loss_Cl_factor_mi
-        loss_other_ti = c*loss_other_factor_mi
+        c = model_solver_rk4(c / mass, F_mi, dt) * mass
 
-        # burden
-        c += emissions_mi - loss_OH_ti - loss_Cl_ti - loss_other_ti
+        # Loss (g)
+        loss_oh_ti = c * loss_oh_factor_mi
+        loss_cl_ti = c * loss_cl_factor_mi
+        loss_other_ti = c * loss_other_factor_mi
 
-        # Monthly totals
-        c_mi += c
-
-        loss_OH_mi += loss_OH_ti
-        loss_Cl_mi += loss_Cl_ti
-        loss_other_mi += loss_other_ti
-
-        loss_OH_ti[loss_OH_ti == 0.0] = 1.0e-24
-        loss_Cl_ti[loss_Cl_ti == 0.0] = 1.0e-24
+        loss_oh_ti[loss_oh_ti == 0.0] = 1.0e-24
+        loss_cl_ti[loss_cl_ti == 0.0] = 1.0e-24
         loss_other_ti[loss_other_ti == 0.0] = 1.0e-24
 
-        lifetime_OH_mi += c/loss_OH_ti
-        lifetime_Cl_mi += c/loss_Cl_ti
-        lifetime_other_mi += c/loss_other_ti
-        lifetime_total_mi += c/(loss_OH_ti + loss_Cl_ti + loss_other_ti)
+        # Update burden
+        c += q_mi - loss_oh_ti - loss_cl_ti - loss_other_ti
+
+        # Add to monthly totals (number of timesteps will be divided out later, for quantities that need averaging)
+        ######################################
+        c_mi += c
+
+        loss_oh_mi += loss_oh_ti  # g
+        loss_cl_mi += loss_cl_ti  # g
+        loss_other_mi += loss_other_ti  # g
+
+        # lifetimes in s
+        lifetime_oh_mi += c / loss_oh_ti * dt_scaled
+        lifetime_cl_mi += c / loss_cl_ti * dt_scaled
+        lifetime_other_mi += c / loss_other_ti * dt_scaled
+        lifetime_total_mi += c / (loss_oh_ti + loss_cl_ti + loss_other_ti) * dt_scaled
+
+        global_lifetime_oh_mi += c.sum() / max([loss_oh_ti.sum(), 1.0e-30]) * dt_scaled
+        global_lifetime_cl_mi += c.sum() / max([loss_cl_ti.sum(), 1.0e-30]) * dt_scaled
+        global_lifetime_other_mi += c.sum() / max([loss_other_ti.sum(), 1.0e-30]) * dt_scaled
+        global_lifetime_total_mi += c.sum() / max(
+            [(loss_oh_ti + loss_cl_ti + loss_other_ti).sum(), 1.0e-30]) * dt_scaled
 
         cnt_mi += 1
 
@@ -368,40 +387,43 @@ def model(ic, q, mol_mass, lifetime,
             # Write Monthly totals for averages
             c_month[mi] = c_mi
             cnt_month[mi] += cnt_mi
+            cnt_global_month[mi] += cnt_mi[0]
 
-            loss_OH[mi] = loss_OH_mi
-            loss_Cl[mi] = loss_Cl_mi
+            loss_oh[mi] = loss_oh_mi
+            loss_cl[mi] = loss_cl_mi
             loss_other[mi] = loss_other_mi
 
-            lifetime_OH[mi] = lifetime_OH_mi
-            lifetime_Cl[mi] = lifetime_Cl_mi
+            lifetime_oh[mi] = lifetime_oh_mi
+            lifetime_cl[mi] = lifetime_cl_mi
             lifetime_other[mi] = lifetime_other_mi
             lifetime_total[mi] = lifetime_total_mi
 
+            global_lifetime_oh[mi] = global_lifetime_oh_mi
+            global_lifetime_cl[mi] = global_lifetime_cl_mi
+            global_lifetime_other[mi] = global_lifetime_other_mi
+            global_lifetime_total[mi] = global_lifetime_total_mi
+
     # Calculate monthly averages
-    burden = c_month.copy()
-    burden = burden/cnt_month
+    burden_out = c_month.copy()
+    burden_out = burden_out / cnt_month
 
-    c_month = burden/mol_mass*mol_m_air*1.0e12  # ppt
-    c_month = np.divide(c_month, mass)
+    mole_fraction_out = np.divide(burden_out / mol_mass * mol_m_air * 1.0e12, mass)  # ppt
 
-    emissions = q_model*30*day_to_sec
+    # Emissions in g
+    q_out = q_g * mi_ti  # g
 
-    loss_OH = loss_OH/cnt_month
-    loss_Cl = loss_Cl/cnt_month
-    loss_other = loss_other/cnt_month
-    losses = np.zeros((3, n_months, n_box))
-    losses[0] = loss_OH
-    losses[1] = loss_Cl
-    losses[2] = loss_other
+    # Losses in g
+    losses = {"oh": loss_oh, "cl": loss_cl, "other": loss_other}
 
-    lifetime_OH = lifetime_OH/cnt_month*dt/year_to_sec
-    lifetime_Cl = lifetime_Cl/cnt_month*dt/year_to_sec
-    lifetime_other = lifetime_other/cnt_month*dt/year_to_sec
-    lifetimes = np.zeros((4, n_months, n_box))
-    lifetimes[0] = lifetime_OH
-    lifetimes[1] = lifetime_Cl
-    lifetimes[2] = lifetime_other
-    lifetimes[3] = lifetime_total
+    # Global lifetimes in years
+    global_lifetimes = {"global_oh": global_lifetime_oh / cnt_global_month / year_to_sec,
+                        "global_cl": global_lifetime_cl / cnt_global_month / year_to_sec,
+                        "global_other": global_lifetime_other / cnt_global_month / year_to_sec,
+                        "global_total": global_lifetime_total / cnt_global_month / year_to_sec}
+    
+    # Local lifetimes in years
+    lifetimes = {"oh": lifetime_oh / cnt_month / year_to_sec,
+                 "cl": lifetime_cl / cnt_month / year_to_sec,
+                 "other": lifetime_other / cnt_month / year_to_sec}
 
-    return c_month, burden, emissions, loss_other, lifetimes
+    return mole_fraction_out, burden_out, q_out, losses, global_lifetimes
