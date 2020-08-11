@@ -304,7 +304,9 @@ def model(ic, q, mol_mass, lifetime,
 
     global_lifetime_oh = np.zeros(n_months)
     global_lifetime_cl = np.zeros(n_months)
-    global_lifetime_other = np.zeros(n_months)
+    global_lifetime_strat = np.zeros(n_months)
+    global_lifetime_othertrop = np.zeros(n_months)
+    global_lifetime_othertroplower = np.zeros(n_months)
     global_lifetime_total = np.zeros(n_months)
 
     """
@@ -343,7 +345,9 @@ def model(ic, q, mol_mass, lifetime,
 
             global_lifetime_oh_mi = 0.
             global_lifetime_cl_mi = 0.
-            global_lifetime_other_mi = 0.
+            global_lifetime_strat_mi = 0.
+            global_lifetime_othertrop_mi = 0.
+            global_lifetime_othertroplower_mi = 0.
             global_lifetime_total_mi = 0.
 
         # Step forward solver
@@ -377,9 +381,10 @@ def model(ic, q, mol_mass, lifetime,
 
         global_lifetime_oh_mi += c.sum() / max([loss_oh_ti.sum(), 1.0e-30]) * dt_scaled
         global_lifetime_cl_mi += c.sum() / max([loss_cl_ti.sum(), 1.0e-30]) * dt_scaled
-        global_lifetime_other_mi += c.sum() / max([loss_other_ti.sum(), 1.0e-30]) * dt_scaled
-        global_lifetime_total_mi += c.sum() / max(
-            [(loss_oh_ti + loss_cl_ti + loss_other_ti).sum(), 1.0e-30]) * dt_scaled
+        global_lifetime_strat_mi += c.sum() / max([loss_other_ti[8:].sum(), 1.0e-30]) * dt_scaled
+        global_lifetime_othertrop_mi += c.sum() / max([loss_other_ti[0:8].sum(), 1.0e-30]) * dt_scaled
+        global_lifetime_othertroplower_mi += c.sum() / max([loss_other_ti[0:4].sum(), 1.0e-30]) * dt_scaled
+        global_lifetime_total_mi += c.sum() / max([(loss_oh_ti + loss_cl_ti + loss_other_ti).sum(), 1.0e-30]) * dt_scaled
 
         cnt_mi += 1
 
@@ -400,7 +405,9 @@ def model(ic, q, mol_mass, lifetime,
 
             global_lifetime_oh[mi] = global_lifetime_oh_mi
             global_lifetime_cl[mi] = global_lifetime_cl_mi
-            global_lifetime_other[mi] = global_lifetime_other_mi
+            global_lifetime_strat[mi] = global_lifetime_strat_mi
+            global_lifetime_othertrop[mi] = global_lifetime_othertrop_mi
+            global_lifetime_othertroplower[mi] = global_lifetime_othertroplower_mi
             global_lifetime_total[mi] = global_lifetime_total_mi
 
     # Calculate monthly averages
@@ -418,7 +425,9 @@ def model(ic, q, mol_mass, lifetime,
     # Global lifetimes in years
     global_lifetimes = {"global_oh": global_lifetime_oh / cnt_global_month / year_to_sec,
                         "global_cl": global_lifetime_cl / cnt_global_month / year_to_sec,
-                        "global_other": global_lifetime_other / cnt_global_month / year_to_sec,
+                        "global_strat": global_lifetime_strat / cnt_global_month / year_to_sec,
+                        "global_othertrop": global_lifetime_othertrop / cnt_global_month / year_to_sec,
+                        "global_othertroplower": global_lifetime_othertroplower / cnt_global_month / year_to_sec,
                         "global_total": global_lifetime_total / cnt_global_month / year_to_sec}
     
     # Local lifetimes in years

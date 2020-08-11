@@ -10,11 +10,13 @@ Version History
 2.0 20180112    EC  Function updates; docstrings update;
                     and numpy save file support.
 """
-#import configparser
 import numpy as np
 import pandas as pd
-from pyprojroot import here
 import scipy
+from pyprojroot import here
+
+import core
+import setup
 
 
 def io_r_csv(fpath, fmt="np"):
@@ -149,41 +151,3 @@ def io_c_csv2npy(fpath1, fpath2):
 
     """
     io_w_npy(fpath2, io_r_csv(fpath1))
-
-
-
-def strat_lifetime_tune(target_lifetime, project_path, case, species):
-    '''
-    Args:
-        target_lifetime (float): stratospheric lifetime in years
-    '''
-    
-    #TODO: THIS NEEDS COMPLETING!!! NO TUNING AT THE MOMENT
-    
-    df = pd.read_csv(project_path / case / f"{species}_lifetime.csv")
-    strat_invlifetime_relative = np.load(here() / "inputs/strat_invlifetime_relative.npy")
-
-    for bi in range (4):
-        df[f"box_{9+bi}"] = target_lifetime / strat_invlifetime_relative[:, bi]
-
-    df.to_csv(project_path / case / f"{species}_lifetime.csv", index = False)
-
-def emissions_write(time, emissions,
-                    project = None,
-                    case = None,
-                    species = None):
-    '''
-    Write emissions file
-    
-    Args:
-        time: N-element pandas datetime for start of each emissions time period
-        emissions: 4 x N element array of emissions values in Gg
-    '''
-    
-    import pandas as pd
-    
-    #TODO: FINISH THIS
-    
-    
-    
-    
