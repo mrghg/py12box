@@ -11,7 +11,6 @@ import core
 import util
 import os
 import pandas as pd
-from pathlib import Path
 from pyprojroot import here
 
 
@@ -146,9 +145,9 @@ def strat_lifetime_tune(target_lifetime, project_path, case, species):
         q[:, 0] = 10.
 
         # Get model parameters
-        mol_mass, oh_a, oh_er = setup.get_species_parameters(species)
-        i_t, i_v1, t, v1, oh, cl, temperature = setup.get_model_parameters(nyears)
-        F = setup.transport_matrix(i_t, i_v1, t, v1)
+        mol_mass, oh_a, oh_er = get_species_parameters(species)
+        i_t, i_v1, t, v1, oh, cl, temperature = get_model_parameters(nyears)
+        F = transport_matrix(i_t, i_v1, t, v1)
 
         c_month, burden, emissions_out, losses, lifetimes = \
             core.model(ic=ic, q=q,
