@@ -48,8 +48,7 @@ time, emissions, ic, lifetime = setup.get_species_parameters(project_path,
                                                              case,
                                                              species)
 
-i_t, i_v1, t, v1, OH, Cl, temperature = setup.get_model_parameters(input_dir,
-                                                                   int(len(time) / 12))
+i_t, i_v1, t, v1, OH, Cl, temperature = setup.get_model_parameters(input_dir, int(len(time) / 12))
 
 def run_model(theta):
 

@@ -11,7 +11,10 @@ import core
 import util
 import os
 import pandas as pd
-from pyprojroot import here
+from pathlib import Path
+
+
+py12box_path = Path(__file__).parent.absolute()
 
 
 def get_species_parameters(species):
@@ -21,7 +24,7 @@ def get_species_parameters(species):
     ----------
     species : str
     """
-    df = pd.read_csv(here() / "inputs/species_info.csv",
+    df = pd.read_csv(py12box_path / "inputs/species_info.csv",
                      index_col="Species")
 
     return df["Molecular mass (g/mol)"][species], df["OH_A"][species], df["OH_ER"][species]
@@ -66,7 +69,7 @@ def get_case_parameters(project_directory,
     return time, emissions, ic, lifetime
 
 
-def get_model_parameters(n_years, input_dir=here() / "inputs"):
+def get_model_parameters(n_years, input_dir=py12box_path / "inputs"):
     # Get model parameters
     ###################################################
 
