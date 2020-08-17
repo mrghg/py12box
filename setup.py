@@ -7,7 +7,7 @@ Created on Wed Jun 27 12:05:03 2018
 """
 
 import numpy as np
-import core
+from py12box import core
 import util
 import os
 import pandas as pd
@@ -103,8 +103,8 @@ def transport_matrix(i_t, i_v1, t, v1):
     F = np.zeros((n_months, 12, 12))
     for mi in range(0, n_months):
         F[mi] = core.model_transport_matrix(i_t=i_t, i_v1=i_v1,
-                                            t_in=t[mi],
-                                            v1_in=v1[mi])
+                                           t_in=t[mi],
+                                           v1_in=v1[mi])
     return F
 
 
@@ -132,7 +132,7 @@ def strat_lifetime_tune(target_lifetime, project_path, case, species):
     if len(df) != 12:
         raise Exception("Error: only works with annually repeating lifetimes at the moment")
 
-    strat_invlifetime_relative = np.load(here() / "inputs/strat_invlifetime_relative.npy")
+    strat_invlifetime_relative = np.load(py12box_path / "inputs/strat_invlifetime_relative.npy")
 
     nyears = 1000
 
