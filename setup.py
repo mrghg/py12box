@@ -7,7 +7,7 @@ Created on Wed Jun 27 12:05:03 2018
 """
 
 import numpy as np
-from py12box import core
+from . import core
 import util
 import os
 import pandas as pd
@@ -23,6 +23,11 @@ def get_species_parameters(species):
     Parameters
     ----------
     species : str
+
+    Returns
+    ---------
+    tuple containing: (molecular mass (g/mol), OH Arrhenius A, OH Arrhenius E/R
+
     """
     df = pd.read_csv(py12box_path / "inputs/species_info.csv",
                      index_col="Species")
