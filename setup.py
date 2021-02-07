@@ -7,8 +7,8 @@ Created on Wed Jun 27 12:05:03 2018
 """
 
 import numpy as np
-from . import core
-import util
+import py12box.core as core
+import py12box.util as util
 import os
 import pandas as pd
 from pathlib import Path
