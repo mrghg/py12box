@@ -1,4 +1,4 @@
-import py12box.setup as setup
+from py12box import setup
 import numpy as np
 
 def test_get_species_parameters():
