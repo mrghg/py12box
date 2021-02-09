@@ -16,7 +16,7 @@ import scipy
 from pyprojroot import here
 
 import py12box.core as core
-import py12box.setup as setup
+import py12box.startup as setup
 
 
 def io_r_csv(fpath, fmt="np"):

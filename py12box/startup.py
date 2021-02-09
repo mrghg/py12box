@@ -14,10 +14,11 @@ import pandas as pd
 from pathlib import Path
 
 
-py12box_path = Path(__file__).parent.absolute()
+py12box_path = Path(__file__).parents[1].absolute()
 
 
-def get_species_parameters(species):
+def get_species_parameters(species,
+                           param_file=None):
     """
 
     Parameters
@@ -29,22 +30,35 @@ def get_species_parameters(species):
     tuple containing: (molecular mass (g/mol), OH Arrhenius A, OH Arrhenius E/R
 
     """
-    df = pd.read_csv(py12box_path / "inputs/species_info.csv",
+
+    if param_file == None:
+        param_file_str = "species_info.csv"
+    else:
+        param_file_str = param_file
+
+    df = pd.read_csv(py12box_path / "data/inputs" / param_file_str,
                      index_col="Species")
 
-    return df["Molecular mass (g/mol)"][species], df["OH_A"][species], df["OH_ER"][species]
+    unit_strings = {"ppm": 1e-6,
+                    "ppb": 1e-9,
+                    "ppt": 1e-12,
+                    "ppq": 1e-15}
+
+    return df["Molecular mass (g/mol)"][species], \
+            df["OH_A"][species], \
+            df["OH_ER"][species], \
+            unit_strings[df["Unit"][species]]
 
 
-def get_case_parameters(project_directory,
-                        case,
-                        species):
+def get_case_parameters(species, project_directory):
+    #TODO: Split out emissions and lifetimes
+    #TODO: Add docstring
+
     # Get species-specfic parameters
     ####################################################
 
-    case_dir = project_directory / case
-
     # Get emissions
-    emissions_df = pd.read_csv(case_dir / ("%s_emissions.csv" % species),
+    emissions_df = pd.read_csv(project_directory / species / f"{species}_emissions.csv",
                                header=0, index_col=0)
     time_in = emissions_df.index.values
 
@@ -63,18 +77,18 @@ def get_case_parameters(project_directory,
         emissions = emissions_df.values
 
     # Get lifetime
-    lifetime_df = pd.read_csv(case_dir / ('%s_lifetime.csv' % species),
+    lifetime_df = pd.read_csv(project_directory / species / f"{species}_lifetime.csv",
                               header=0, index_col=0)
     lifetime = np.tile(lifetime_df.values, (n_years, 1))
 
     # Get initial conditions
-    ic = (pd.read_csv(case_dir / ('%s_initial_conditions.csv' % species),
+    ic = (pd.read_csv(project_directory / species / f"{species}_initial_conditions.csv",
                       header=0).values.astype(np.float64)).flatten()
 
     return time, emissions, ic, lifetime
 
 
-def get_model_parameters(n_years, input_dir=py12box_path / "inputs"):
+def get_model_parameters(n_years, input_dir=py12box_path / "data/inputs"):
     # Get model parameters
     ###################################################
 
