@@ -23,10 +23,48 @@ def test_get_species_parameters():
 def test_get_case_parameters():
     time, emissions, ic, lifetime = startup.get_case_parameters("CFC-11",
                                                                 Path("data/example"))
+    
     assert time[0] == 1990.
+    assert len(time) == 29*12
+    assert emissions[0, 0] == 100.
+    assert emissions[-1, 3] == 0
+    assert emissions.shape == (348, 4)
+    assert ic[0] == 200.
+    assert len(ic) == 12
+    assert lifetime[0, 8] == 36.878456
+    assert lifetime.shape == (348, 12)
 
 
-def test_model():
+def test_get_model_parameters():
+
+    i_t, i_v1, t, v1, oh, cl, temperature = startup.get_model_parameters(2,
+                                                                         input_dir=Path("data/inputs"))
+
+    assert len(i_t) == 17
+    assert i_t[10][0] == 8
+    assert i_t[10][1] == 4
+    assert len(i_v1) == 10
+    assert i_v1[5][0] == 6
+    assert i_v1[5][1] == 7
+    assert t.shape == (24, 17)
+    assert t[6, 7] == 38.
+    assert v1.shape == (24, 10)
+    assert v1[7, 8] == -54.
+    assert oh.shape == (24, 12)
+    assert np.isclose(oh[2, 2], 1810513., rtol = 0.001)
+    assert cl.shape == (24, 12)
+    assert temperature.shape == (24, 12)
+    assert np.isclose(temperature.max(), 283.78165)
+    assert np.isclose(temperature.min(), 207.19719)
+
+    F = startup.transport_matrix(i_t, i_v1, t, v1)
+
+    assert F.shape == (24, 12, 12)
+    assert F[0, 5, 6] == F[12, 5, 6]
+    assert np.isclose(F[2, 2, 2], -3.98587280261696e-07, rtol = 0.0001)
+
+
+def test_model_class():
 
     box_mod = Model("HFC-134a", Path("data/example"))
 

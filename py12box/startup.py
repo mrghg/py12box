@@ -7,11 +7,12 @@ Created on Wed Jun 27 12:05:03 2018
 """
 
 import numpy as np
-import py12box.core as core
-import py12box.util as util
 import os
 import pandas as pd
 from pathlib import Path
+
+import py12box.core as core
+import py12box.util as util
 
 
 py12box_path = Path(__file__).parents[1].absolute()
@@ -96,34 +97,36 @@ def get_model_parameters(n_years, input_dir=py12box_path / "data/inputs"):
     i_t, i_v1, t, v1 = \
         util.io_r_npz(os.path.join(input_dir,
                                    'transport.npz'))
-    t = np.tile(t, (n_years, 1))
-    v1 = np.tile(v1, (n_years, 1))
+    t = np.tile(t, (int(n_years), 1))
+    v1 = np.tile(v1, (int(n_years), 1))
 
     # Get OH
     OH = np.tile(util.io_r_npy(os.path.join(input_dir, 'OH.npy')),
-                 (n_years, 1))
+                 (int(n_years), 1))
 
     # Get Cl
     Cl = np.tile(util.io_r_npy(os.path.join(input_dir, 'Cl.npy')),
-                 (n_years, 1))
+                 (int(n_years), 1))
 
     # Get temperature
     temperature = np.tile(util.io_r_npy(os.path.join(input_dir,
                                                      'temperature.npy')),
-                          (n_years, 1))
+                          (int(n_years), 1))
 
     return i_t, i_v1, t, v1, OH, Cl, temperature
 
 
 def transport_matrix(i_t, i_v1, t, v1):
+    #TODO: docstring
+
     n_months = t.shape[0]
     t *= (24.0 * 3600.0)
     v1 *= (24.0 * 3600.0)
     F = np.zeros((n_months, 12, 12))
     for mi in range(0, n_months):
         F[mi] = core.model_transport_matrix(i_t=i_t, i_v1=i_v1,
-                                           t_in=t[mi],
-                                           v1_in=v1[mi])
+                                            t_in=t[mi],
+                                            v1_in=v1[mi])
     return F
 
 
