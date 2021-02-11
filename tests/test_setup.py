@@ -6,12 +6,6 @@ from  py12box import startup
 
 
 def test_get_species_parameters():
-    '''
-    Test setup.get_species_parameters
-
-    Ensure that sensible species info is returned
-    '''
-
     mol_mass, oh_a, oh_er, unit = startup.get_species_parameters("CFC-11")
 
     assert np.isclose(mol_mass, 137.3688, rtol=0.001)
@@ -20,19 +14,27 @@ def test_get_species_parameters():
     assert unit == 1e-12
 
 
-def test_get_case_parameters():
-    time, emissions, ic, lifetime = startup.get_case_parameters("CFC-11",
-                                                                Path("data/example"))
+def test_get_emissions():
+    time, emissions = startup.get_emissions("CFC-11",
+                                            Path("data/example"))
     
     assert time[0] == 1990.
     assert len(time) == 29*12
     assert emissions[0, 0] == 100.
     assert emissions[-1, 3] == 0
     assert emissions.shape == (348, 4)
+
+def test_get_lifetime():
+    lifetime = startup.get_lifetime("CFC-11",
+                                    Path("data/example"), n_years=4)
+    assert lifetime[0, 8] == 36.878456
+    assert lifetime.shape == (12*4, 12)
+
+def test_get_initial_conditions():
+    ic = startup.get_initial_conditions("CFC-11",
+                                        Path("data/example"))
     assert ic[0] == 200.
     assert len(ic) == 12
-    assert lifetime[0, 8] == 36.878456
-    assert lifetime.shape == (348, 12)
 
 
 def test_get_model_parameters():
@@ -72,4 +74,6 @@ def test_model_class():
     assert np.isclose(box_mod.oh_a, 1.03E-12, rtol=0.001)
     assert np.isclose(box_mod.oh_er, -1620, rtol=0.001)
     assert box_mod.units == 1e-12
-    
+
+
+# TODO: Add tests for core model

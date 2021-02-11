@@ -61,7 +61,7 @@ def get_species_parameters(species,
             unit_strings[df["Unit"][species]]
 
 
-def get_case_parameters(species, project_directory):
+def get_emissions(species, project_directory):
     #TODO: Split out emissions and lifetimes
     #TODO: Add docstring
 
@@ -70,11 +70,9 @@ def get_case_parameters(species, project_directory):
 
     # Get emissions
     emissions_df = pd.read_csv(project_directory / species / f"{species}_emissions.csv",
-                               header=0, index_col=0)
+                               header=0, index_col=0,
+                               comment="#")
     time_in = emissions_df.index.values
-
-    # Get time from emissions file
-    n_years = len(time_in)
 
     # Work out time frequency and interpolate, if required
     time_freq = time_in[1] - time_in[0]
@@ -87,19 +85,34 @@ def get_case_parameters(species, project_directory):
         time = time_in.copy()
         emissions = emissions_df.values
 
+    return time, emissions
+
+
+def get_lifetime(species, project_directory, n_years):
+    #TODO: have this be calculated online, removing the need for a lifetime file
+
     # Get lifetime
     lifetime_df = pd.read_csv(project_directory / species / f"{species}_lifetime.csv",
-                              header=0, index_col=0)
+                              header=0, index_col=0,
+                              comment="#")
     lifetime = np.tile(lifetime_df.values, (n_years, 1))
+
+    return lifetime
+
+
+def get_initial_conditions(species, project_directory):
+    #TODO: docstring
 
     # Get initial conditions
     ic = (pd.read_csv(project_directory / species / f"{species}_initial_conditions.csv",
-                      header=0).values.astype(np.float64)).flatten()
+                      header=0,
+                      comment="#").values.astype(np.float64)).flatten()
 
-    return time, emissions, ic, lifetime
+    return ic
 
 
 def get_model_parameters(n_years, input_dir=py12box_path / "data/inputs"):
+    #TODO: docstring
     # Get model parameters
     ###################################################
 

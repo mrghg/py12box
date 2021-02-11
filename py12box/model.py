@@ -12,6 +12,8 @@ distributed under the License is distributed on an "AS IS" BASIS,
 WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 See the License for the specific language governing permissions and
 limitations under the License.
+
+12-box model class
 """
 
 import numpy as np
@@ -46,12 +48,17 @@ class Model:
         self.oh_er = oh_er
         self.units = units
 
-        # Get emissions, initial conditions and lifetimes
-        time, emissions, ic, lifetime = startup.get_case_parameters(species, project_directory)
+        # Get emissions. Time is taken from emissions file
+        time, emissions = startup.get_emissions(species, project_directory)
         self.time = time
         self.emissions = emissions
-        self.ic = ic
-        self.lifetime = lifetime
+
+        # Get lifetime
+        n_years = len(time)
+        self.lifetime = startup.get_lifetime(species, project_directory, n_years)
+
+        # Get initial conditions
+        self.ic = startup.get_initial_conditions(species, project_directory)
 
         # Get transport parameters, OH, Cl and temperature
         _i_t, _i_v1, _t, _v1, oh, cl, temperature = startup.get_model_parameters(len(emissions)/12,
@@ -63,12 +70,13 @@ class Model:
         # Transform transport parameters into matrix
         self.F = startup.transport_matrix(_i_t, _i_v1, _t, _v1)
 
+        # Run model for one timestep to compile
+        print("Compiling model...")
+        self.run(nsteps=1)
 
-    def run(self, verbose=True):
+
+    def run(self, nsteps=-1, verbose=True):
         #TODO: Docstring
-        
-        if verbose:
-            print("Running model. This may be slow for the first run...")
 
         tic = time.time()
 
@@ -76,7 +84,8 @@ class Model:
             core.model(self.ic, self.emissions, self.mol_mass, self.lifetime,
                         self.F, self.temperature, self.oh, self.cl,
                         arr_oh=np.array([self.oh_a, self.oh_er]),
-                        mass=self.mass)
+                        mass=self.mass,
+                        nsteps=nsteps)
         
         toc = time.time()
         if verbose:
