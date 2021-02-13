@@ -21,33 +21,33 @@ import os
 import pandas as pd
 from pathlib import Path
 
-import py12box.core as core
-import py12box.util as util
-
-
-py12box_path = Path(__file__).parents[1].absolute()
+from py12box import core, util, get_data
 
 
 def get_species_parameters(species,
                            param_file=None):
-    """
+    """Get parameters for a specific species (e.g. mol_mass, etc.)
 
     Parameters
     ----------
     species : str
+        Species name. Must match species_info.csv
+    param_file : str, optional
+        Name of species info file, by default None, which sets species_info.csv
 
     Returns
-    ---------
-    tuple containing: (molecular mass (g/mol), OH Arrhenius A, OH Arrhenius E/R
-
+    -------
+    [type]
+        [description]
     """
 
     if param_file == None:
         param_file_str = "species_info.csv"
     else:
+        #TODO: Put this outside the main package
         param_file_str = param_file
 
-    df = pd.read_csv(py12box_path / "data/inputs" / param_file_str,
+    df = pd.read_csv(get_data("inputs") / param_file_str,
                      index_col="Species")
 
     unit_strings = {"ppm": 1e-6,
@@ -62,11 +62,23 @@ def get_species_parameters(species,
 
 
 def get_emissions(species, project_directory):
-    #TODO: Split out emissions and lifetimes
-    #TODO: Add docstring
+    """Get emissions from project's emissions file
 
-    # Get species-specfic parameters
-    ####################################################
+    Parameters
+    ----------
+    species : str
+        Species name to look up emissions file in project folder
+        (e.g. "CFC-11_emissions.csv")
+    project_directory : pathlib.Path
+        Path to 12-box model project
+
+    Returns
+    -------
+    np.array
+        Array containing decimal times (1 x ntimesteps)
+    np.array 
+        Array containing emissions (12 x ntimesteps)
+    """
 
     # Get emissions
     emissions_df = pd.read_csv(project_directory / species / f"{species}_emissions.csv",
@@ -111,7 +123,7 @@ def get_initial_conditions(species, project_directory):
     return ic
 
 
-def get_model_parameters(n_years, input_dir=py12box_path / "data/inputs"):
+def get_model_parameters(n_years, input_dir=get_data("inputs")):
     #TODO: docstring
     # Get model parameters
     ###################################################

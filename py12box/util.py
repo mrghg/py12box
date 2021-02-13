@@ -32,11 +32,7 @@ import numpy as np
 import pandas as pd
 from pathlib import Path
 
-from py12box import startup
-from py12box import core
-
-
-py12box_path = Path(__file__).parents[1].absolute()
+from py12box import startup, core, get_data
 
 
 def strat_lifetime_tune(target_lifetime, project_path, case, species):
@@ -63,7 +59,7 @@ def strat_lifetime_tune(target_lifetime, project_path, case, species):
     if len(df) != 12:
         raise Exception("Error: only works with annually repeating lifetimes at the moment")
 
-    strat_invlifetime_relative = np.load(py12box_path / "inputs/strat_invlifetime_relative.npy")
+    strat_invlifetime_relative = np.load(get_data("inputs/strat_invlifetime_relative.npy"))
 
     nyears = 1000
 
