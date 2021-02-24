@@ -13,6 +13,7 @@ from pathlib import Path
 
 import py12box.core as core
 import py12box.util as util
+import py12box.model as model
 
 
 py12box_path = Path(__file__).parents[1].absolute()
@@ -61,7 +62,7 @@ def zero_initial_conditions():
     df = pd.DataFrame(icdict)
     return df
         
-def get_case_parameters(species, project_directory):
+def get_case_parameters(species, project_directory, target_lifetime=None):
     #TODO: Split out emissions and lifetimes
     #TODO: Add docstring
 
@@ -92,7 +93,7 @@ def get_case_parameters(species, project_directory):
     # Get lifetime
     if not os.path.isfile(project_directory / f"{species}_lifetime.csv"):
         print("No lifetime file. \n Estimating stratospheric lifetime.")
-        strat_lifetime_tune(project_directory, species, target_lifetime=target_lifetime)
+        strat_lifetime_tune(project_directory, species)
     lifetime_df = pd.read_csv(project_directory / f"{species}_lifetime.csv",
                                   header=0, index_col=0)
     lifetime = np.tile(lifetime_df.values, (n_years, 1))

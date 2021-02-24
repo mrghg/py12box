@@ -47,7 +47,8 @@ class Model:
         self.units = units
 
         # Get emissions, initial conditions and lifetimes
-        time, emissions, ic, lifetime = startup.get_case_parameters(species, project_directory)
+        time, emissions, ic, lifetime = startup.get_case_parameters(species, 
+                                                                    project_directory)
         self.time = time
         self.emissions = emissions
         self.ic = ic
