@@ -1,44 +1,51 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-Created on Wed Jun 27 12:05:03 2018
+Copyright 2021 Matt Rigby
 
-@author: chxmr
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Model startup functions.
 """
 
 import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
-
-import py12box.core as core
-import py12box.util as util
-import py12box.model as model
-
-
-py12box_path = Path(__file__).parents[1].absolute()
-
+from py12box import core, util, get_data, model
 
 def get_species_parameters(species,
                            param_file=None):
-    """
+    """Get parameters for a specific species (e.g. mol_mass, etc.)
 
     Parameters
     ----------
     species : str
+        Species name. Must match species_info.csv
+    param_file : str, optional
+        Name of species info file, by default None, which sets species_info.csv
 
     Returns
-    ---------
-    tuple containing: (molecular mass (g/mol), OH Arrhenius A, OH Arrhenius E/R
-
+    -------
+    [type]
+        [description]
     """
 
     if param_file == None:
         param_file_str = "species_info.csv"
     else:
+        #TODO: Put this outside the main package
         param_file_str = param_file
 
-    df = pd.read_csv(py12box_path / "data/inputs" / param_file_str,
+    df = pd.read_csv(get_data("inputs") / param_file_str,
                      index_col="Species")
 
     unit_strings = {"ppm": 1e-6,
@@ -62,22 +69,34 @@ def zero_initial_conditions():
     df = pd.DataFrame(icdict)
     return df
         
-def get_case_parameters(species, project_directory, target_lifetime=None):
-    #TODO: Split out emissions and lifetimes
-    #TODO: Add docstring
 
-    # Get species-specfic parameters
-    ####################################################
+def get_emissions(species, project_directory):
+    """Get emissions from project's emissions file
+
+
+    Parameters
+    ----------
+    species : str
+        Species name to look up emissions file in project folder
+        (e.g. "CFC-11_emissions.csv")
+    project_directory : pathlib.Path
+        Path to 12-box model project
+
+    Returns
+    -------
+    np.array
+        Array containing decimal times (1 x ntimesteps)
+    np.array 
+        Array containing emissions (12 x ntimesteps)
+    """
 
     # Get emissions
     if not os.path.isfile(project_directory / f"{species}_emissions.csv"):
         raise Exception("There must be an emissions file. Please make one.")
     emissions_df = pd.read_csv(project_directory / f"{species}_emissions.csv",
                                header=0, index_col=0, comment="#")
-    time_in = emissions_df.index.values
 
-    # Get time from emissions file
-    n_years = len(time_in)
+    time_in = emissions_df.index.values
 
     # Work out time frequency and interpolate, if required
     time_freq = time_in[1] - time_in[0]
@@ -90,26 +109,41 @@ def get_case_parameters(species, project_directory, target_lifetime=None):
         time = time_in.copy()
         emissions = emissions_df.values
 
+    return time, emissions
+
+
+def get_lifetime(species, project_directory, n_years):
+    #TODO: have this be calculated online, removing the need for a lifetime file
+
     # Get lifetime
     if not os.path.isfile(project_directory / f"{species}_lifetime.csv"):
         print("No lifetime file. \n Estimating stratospheric lifetime.")
         strat_lifetime_tune(project_directory, species)
-    lifetime_df = pd.read_csv(project_directory / f"{species}_lifetime.csv",
-                                  header=0, index_col=0)
+    lifetime_df = pd.read_csv(project_directory / species / f"{species}_lifetime.csv",
+                              header=0, index_col=0,
+                              comment="#")
+
     lifetime = np.tile(lifetime_df.values, (n_years, 1))
+
+    return lifetime
+
+
+def get_initial_conditions(species, project_directory):
+    #TODO: docstring
 
     # Get initial conditions
     if not os.path.isfile(project_directory / f"{species}_initial_conditions.csv"):
         print("No inital conditions file. \n Assuming zero initial conditions")
         ic = (zero_initial_conditions().values.astype(np.float64)).flatten()
     else:
-        ic = (pd.read_csv(project_directory / f"{species}_initial_conditions.csv",
-                      header=0).values.astype(np.float64)).flatten()
+        ic = (pd.read_csv(project_directory / species / f"{species}_initial_conditions.csv",
+                          header=0,
+                          comment="#").values.astype(np.float64)).flatten()
+    return ic
 
-    return time, emissions, ic, lifetime
 
-
-def get_model_parameters(n_years, input_dir=py12box_path / "data/inputs"):
+def get_model_parameters(n_years, input_dir=get_data("inputs")):
+    #TODO: docstring
     # Get model parameters
     ###################################################
 
@@ -148,7 +182,6 @@ def transport_matrix(i_t, i_v1, t, v1):
                                             t_in=t[mi],
                                             v1_in=v1[mi])
     return F
-
 
 def strat_lifetime_tune(project_path, species, target_lifetime=None):
     """
@@ -212,21 +245,6 @@ def strat_lifetime_tune(project_path, species, target_lifetime=None):
         df[f"box_{9 + bi}"] = current_lifetime / strat_invlifetime_relative[:, bi]
 
     df.to_csv(project_path / f"{species}_lifetime.csv", index=False)
-
-
-def emissions_write(time, emissions,
-                    project=None,
-                    case=None,
-                    species=None):
-    '''
-    Write emissions file
-
-    Args:
-        time: N-element pandas datetime for start of each emissions time period
-        emissions: 4 x N element array of emissions values in Gg
-    '''
-
-    # TODO: FINISH THIS
 
 
 
