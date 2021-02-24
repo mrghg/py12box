@@ -18,13 +18,20 @@ Installation
 
    install
 
-Usage
-============
+Getting started
+===============
 
 .. toctree::
    :maxdepth: 2
 
    getting_started.ipynb
+
+Modules and functions
+=====================
+
+.. autoclass:: py12box.model.Model
+   :members:
+
 
 
 Indices and tables
