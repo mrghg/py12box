@@ -4,7 +4,7 @@
    contain the root `toctree` directive.
 
 Welcome to the py12box documentation
-===================================
+====================================
 
 .. toctree::
    :maxdepth: 2
@@ -23,6 +23,8 @@ Usage
 
 .. toctree::
    :maxdepth: 2
+
+   getting_started.ipynb
 
 
 Indices and tables
