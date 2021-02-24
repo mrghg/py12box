@@ -35,7 +35,7 @@ class Model:
 
     def __init__(self, species, project_directory,
                  species_param_file=None):
-        """Set up model class
+        """Set up Model class
 
         Parameters
         ----------
