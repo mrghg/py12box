@@ -50,7 +50,17 @@ def get_species_parameters(species,
             df["OH_ER"][species], \
             unit_strings[df["Unit"][species]]
 
-
+        
+def zero_initial_conditions():
+    """
+    Make an initial conditions files with all boxes 1e-12
+    """
+    icdict = {}
+    for i in range(1,13):
+        icdict["box_"+str(i)] = [1e-12]
+    df = pd.DataFrame(icdict)
+    return df
+        
 def get_case_parameters(species, project_directory):
     #TODO: Split out emissions and lifetimes
     #TODO: Add docstring
@@ -59,8 +69,10 @@ def get_case_parameters(species, project_directory):
     ####################################################
 
     # Get emissions
-    emissions_df = pd.read_csv(project_directory / species / f"{species}_emissions.csv",
-                               header=0, index_col=0)
+    if not os.path.isfile(project_directory / f"{species}_emissions.csv"):
+        raise Exception("There must be an emissions file. Please make one.")
+    emissions_df = pd.read_csv(project_directory / f"{species}_emissions.csv",
+                               header=0, index_col=0, comment="#")
     time_in = emissions_df.index.values
 
     # Get time from emissions file
@@ -70,7 +82,7 @@ def get_case_parameters(species, project_directory):
     time_freq = time_in[1] - time_in[0]
     if time_freq == 1:
         # Annual emissions. Interpolate to monthly
-        time = np.arange(time_in[0], time_in[-1] + 1 - 1. / 12, 1 / 12.)
+        time = np.arange(time_in[0], time_in[-1] + 1, 1 / 12.)
         emissions = np.repeat(emissions_df.values, 12, axis=0)
     else:
         # Assume monthly emissions
@@ -78,12 +90,19 @@ def get_case_parameters(species, project_directory):
         emissions = emissions_df.values
 
     # Get lifetime
-    lifetime_df = pd.read_csv(project_directory / species / f"{species}_lifetime.csv",
-                              header=0, index_col=0)
+    if not os.path.isfile(project_directory / f"{species}_lifetime.csv"):
+        print("No lifetime file. \n Estimating stratospheric lifetime.")
+        strat_lifetime_tune(project_directory, species, target_lifetime=target_lifetime)
+    lifetime_df = pd.read_csv(project_directory / f"{species}_lifetime.csv",
+                                  header=0, index_col=0)
     lifetime = np.tile(lifetime_df.values, (n_years, 1))
 
     # Get initial conditions
-    ic = (pd.read_csv(project_directory / species / f"{species}_initial_conditions.csv",
+    if not os.path.isfile(project_directory / f"{species}_initial_conditions.csv"):
+        print("No inital conditions file. \n Assuming zero initial conditions")
+        ic = (zero_initial_conditions().values.astype(np.float64)).flatten()
+    else:
+        ic = (pd.read_csv(project_directory / f"{species}_initial_conditions.csv",
                       header=0).values.astype(np.float64)).flatten()
 
     return time, emissions, ic, lifetime
@@ -130,7 +149,7 @@ def transport_matrix(i_t, i_v1, t, v1):
     return F
 
 
-def strat_lifetime_tune(target_lifetime, project_path, case, species):
+def strat_lifetime_tune(project_path, species, target_lifetime=None):
     """
     Tune stratospheric lifetime. Updates specified lifetime file with local lifetimes that are consistent with target
     lifetime.
@@ -146,13 +165,22 @@ def strat_lifetime_tune(target_lifetime, project_path, case, species):
     species : str
         Species name (e.g. 'CFC-11')
     """
-
     # TODO: Add other lifetimes in here
+    if not target_lifetime:
+        ltdf = pd.read_csv(py12box_path / "inputs/lifetimes.csv", comment="#", index_col=0)
+        target_lifetime = ltdf.loc[species][0]
 
-    df = pd.read_csv(project_path / case / f"{species}_lifetime.csv")
+    if not os.path.isfile(project_path / f"{species}_lifetime.csv"):    
+        ltdict = {"month":np.arange(12).astype(int)+1}
+        for i in range(1,13):
+            ltdict["box_"+str(i)] = np.ones(12)*1e12 if i < 9 else np.ones(12)*10
+        df = pd.DataFrame(ltdict)
+        df.to_csv(project_path / f"{species}_lifetime.csv", index=False)
 
+    df = pd.read_csv(project_path / f"{species}_lifetime.csv")
     if len(df) != 12:
         raise Exception("Error: only works with annually repeating lifetimes at the moment")
+
 
     strat_invlifetime_relative = np.load(py12box_path / "inputs/strat_invlifetime_relative.npy")
 
@@ -170,29 +198,19 @@ def strat_lifetime_tune(target_lifetime, project_path, case, species):
         q[:, 0] = 10.
 
         # Get model parameters
-        mol_mass, oh_a, oh_er = get_species_parameters(species)
-        i_t, i_v1, t, v1, oh, cl, temperature = get_model_parameters(nyears)
-        F = transport_matrix(i_t, i_v1, t, v1)
-
-        c_month, burden, emissions_out, losses, lifetimes = \
-            core.model(ic=ic, q=q,
-                       mol_mass=mol_mass,
-                       lifetime=test_lifetime,
-                       F=F,
-                       temp=temperature,
-                       cl=cl, oh=oh,
-                       arr_oh=np.array([oh_a, oh_er]))
+        mod = model.Model(species, project_path)
+        mod.run(verbose=False)
 
         print(
-            f"... stratosphere: {lifetimes['global_strat'][-12:].mean()}, total {lifetimes['global_total'][-12:].mean()}")
+            f"... stratosphere: {mod.lifetimes['global_strat'][-12:].mean()}, total {mod.lifetimes['global_total'][-12:].mean()}")
 
-        lifetime_factor = (1. / target_lifetime) / (1. / lifetimes["global_strat"][-12:]).mean()
+        lifetime_factor = (1. / target_lifetime) / (1. / mod.lifetimes["global_strat"][-12:]).mean()
         current_lifetime /= lifetime_factor
 
     for bi in range(4):
         df[f"box_{9 + bi}"] = current_lifetime / strat_invlifetime_relative[:, bi]
 
-    df.to_csv(project_path / case / f"{species}_lifetime.csv", index=False)
+    df.to_csv(project_path / f"{species}_lifetime.csv", index=False)
 
 
 def emissions_write(time, emissions,
