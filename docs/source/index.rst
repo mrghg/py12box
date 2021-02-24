@@ -26,8 +26,8 @@ Getting started
 
    getting_started.ipynb
 
-Modules and functions
-=====================
+API
+===============
 
 .. autoclass:: py12box.model.Model
    :members:
