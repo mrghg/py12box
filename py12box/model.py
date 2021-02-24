@@ -25,15 +25,6 @@ from py12box import startup, core, get_data
 class Model:
     """AGAGE 12-box model class
 
-    Parameters
-    ----------
-    species : str
-        Species name (e.g. "CFC-11")
-        Must match string in data/inputs/species_info.csv
-    project_directory : pathlib.Path
-        Path to project directory, which contains emissions, lifetimes, etc.
-    species_param_file : str, optional
-        Species parameter file. Defaults to data/inputs/species_info.csv, by default None
     """
 
     # Mass of the atmosphere
@@ -46,6 +37,18 @@ class Model:
 
     def __init__(self, species, project_directory,
                  species_param_file=None):
+        """Set up model
+
+        Parameters
+        ----------
+        species : str
+            Species name (e.g. "CFC-11")
+            Must match string in data/inputs/species_info.csv
+        project_directory : pathlib.Path
+            Path to project directory, which contains emissions, lifetimes, etc.
+        species_param_file : str, optional
+            Species parameter file. Defaults to data/inputs/species_info.csv, by default None
+        """
 
         self.species = species
         self.project_path = project_directory
