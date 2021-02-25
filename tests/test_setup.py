@@ -2,7 +2,7 @@ import numpy as np
 from pathlib import Path
 
 from py12box.model import Model
-from  py12box import startup
+from  py12box import startup, get_data
 
 
 def test_get_species_parameters():
@@ -16,7 +16,7 @@ def test_get_species_parameters():
 
 def test_get_emissions():
     time, emissions = startup.get_emissions("CFC-11",
-                                            Path("py12box/data/example"))
+                                            get_data("example/CFC-11"))
     
     assert time[0] == 1990.
     assert len(time) == 29*12
@@ -26,13 +26,13 @@ def test_get_emissions():
 
 def test_get_lifetime():
     lifetime = startup.get_lifetime("CFC-11",
-                                    Path("py12box/data/example"), n_years=4)
+                                    get_data("/example/CFC-11"), n_years=4)
     assert lifetime[0, 8] == 36.878456
     assert lifetime.shape == (12*4, 12)
 
 def test_get_initial_conditions():
     ic = startup.get_initial_conditions("CFC-11",
-                                        Path("py12box/data/example"))
+                                        get_data("example/CFC-11"))
     assert ic[0] == 200.
     assert len(ic) == 12
 
@@ -40,7 +40,7 @@ def test_get_initial_conditions():
 def test_get_model_parameters():
 
     i_t, i_v1, t, v1, oh, cl, temperature = startup.get_model_parameters(2,
-                                                                         input_dir=Path("py12box/data/inputs"))
+                                                                         input_dir=get_data("inputs"))
 
     assert len(i_t) == 17
     assert i_t[10][0] == 8
@@ -68,7 +68,7 @@ def test_get_model_parameters():
 
 def test_model_class():
 
-    box_mod = Model("HFC-134a", Path("py12box/data/example"))
+    box_mod = Model("HFC-134a", get_data("example/HFC-134a"))
 
     assert np.isclose(box_mod.mol_mass, 102.0311, rtol=0.001)
     assert np.isclose(box_mod.oh_a, 1.03E-12, rtol=0.001)
@@ -77,3 +77,5 @@ def test_model_class():
 
 
 # TODO: Add tests for core model
+if __name__ == "__main__":
+    test_get_lifetime()

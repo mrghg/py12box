@@ -62,7 +62,9 @@ def get_species_parameters(species,
 def zero_initial_conditions():
     """
     Make an initial conditions files with all boxes 1e-12
+
     """
+
     icdict = {}
     for i in range(1,13):
         icdict["box_"+str(i)] = [1e-12]
@@ -72,7 +74,6 @@ def zero_initial_conditions():
 
 def get_emissions(species, project_directory):
     """Get emissions from project's emissions file
-
 
     Parameters
     ----------
@@ -116,10 +117,11 @@ def get_lifetime(species, project_directory, n_years):
     #TODO: have this be calculated online, removing the need for a lifetime file
 
     # Get lifetime
-    if not os.path.isfile(project_directory / f"{species}_lifetime.csv"):
+    if not (project_directory / f"{species}_lifetime.csv").exists():
         print("No lifetime file. \n Estimating stratospheric lifetime.")
         strat_lifetime_tune(project_directory, species)
-    lifetime_df = pd.read_csv(project_directory / species / f"{species}_lifetime.csv",
+    
+    lifetime_df = pd.read_csv(project_directory / f"{species}_lifetime.csv",
                               header=0, index_col=0,
                               comment="#")
 
@@ -136,7 +138,7 @@ def get_initial_conditions(species, project_directory):
         print("No inital conditions file. \n Assuming zero initial conditions")
         ic = (zero_initial_conditions().values.astype(np.float64)).flatten()
     else:
-        ic = (pd.read_csv(project_directory / species / f"{species}_initial_conditions.csv",
+        ic = (pd.read_csv(project_directory / f"{species}_initial_conditions.csv",
                           header=0,
                           comment="#").values.astype(np.float64)).flatten()
     return ic
@@ -183,6 +185,7 @@ def transport_matrix(i_t, i_v1, t, v1):
                                             v1_in=v1[mi])
     return F
 
+
 def strat_lifetime_tune(project_path, species, target_lifetime=None):
     """
     Tune stratospheric lifetime. Updates specified lifetime file with local lifetimes that are consistent with target
@@ -199,9 +202,10 @@ def strat_lifetime_tune(project_path, species, target_lifetime=None):
     species : str
         Species name (e.g. 'CFC-11')
     """
+
     # TODO: Add other lifetimes in here
     if not target_lifetime:
-        ltdf = pd.read_csv(py12box_path / "inputs/lifetimes.csv", comment="#", index_col=0)
+        ltdf = pd.read_csv(get_data("inputs/lifetimes.csv"), comment="#", index_col=0)
         target_lifetime = ltdf.loc[species][0]
 
     if not os.path.isfile(project_path / f"{species}_lifetime.csv"):    
@@ -216,7 +220,7 @@ def strat_lifetime_tune(project_path, species, target_lifetime=None):
         raise Exception("Error: only works with annually repeating lifetimes at the moment")
 
 
-    strat_invlifetime_relative = np.load(py12box_path / "inputs/strat_invlifetime_relative.npy")
+    strat_invlifetime_relative = np.load(get_data("inputs/strat_invlifetime_relative.npy"))
 
     nyears = 1000
 
