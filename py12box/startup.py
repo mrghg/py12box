@@ -22,8 +22,6 @@ import pandas as pd
 from pathlib import Path
 from py12box import core, util, get_data, model
 
-
-
 def get_species_parameters(species,
                            param_file=None):
     """Get parameters for a specific species (e.g. mol_mass, etc.)
@@ -63,7 +61,9 @@ def get_species_parameters(species,
 def zero_initial_conditions():
     """
     Make an initial conditions files with all boxes 1e-12
+
     """
+
     icdict = {}
     for i in range(1,13):
         icdict["box_"+str(i)] = [1e-12]
@@ -93,9 +93,10 @@ def get_emissions(species, project_directory):
     # Get emissions
     if not os.path.isfile(project_directory / f"{species}_emissions.csv"):
         raise Exception("There must be an emissions file. Please make one.")
-    emissions_df = pd.read_csv(project_directory / species / f"{species}_emissions.csv",
-                               header=0, index_col=0,
-                               comment="#")
+
+    emissions_df = pd.read_csv(project_directory / f"{species}_emissions.csv",
+                               header=0, index_col=0, comment="#")
+
     time_in = emissions_df.index.values
 
     # Work out time frequency and interpolate, if required
@@ -116,13 +117,14 @@ def get_lifetime(species, project_directory, n_years):
     #TODO: have this be calculated online, removing the need for a lifetime file
 
     # Get lifetime
-    if not os.path.isfile(project_directory / f"{species}_lifetime.csv"):
+    if not (project_directory / f"{species}_lifetime.csv").exists():
         print("No lifetime file. \n Estimating stratospheric lifetime.")
         lifetime_df = strat_lifetime_tune(project_directory, species)
     else:
-        lifetime_df = pd.read_csv(project_directory / species / f"{species}_lifetime.csv",
+        lifetime_df = pd.read_csv(project_directory / f"{species}_lifetime.csv",
                               header=0, index_col=0,
                               comment="#")
+
     lifetime = np.tile(lifetime_df.values, (n_years, 1))
 
     return lifetime
@@ -136,9 +138,9 @@ def get_initial_conditions(species, project_directory):
         print("No inital conditions file. \n Assuming zero initial conditions")
         ic = (zero_initial_conditions().values.astype(np.float64)).flatten()
     else:
-        ic = (pd.read_csv(project_directory / species / f"{species}_initial_conditions.csv",
-                      header=0,
-                      comment="#").values.astype(np.float64)).flatten()
+        ic = (pd.read_csv(project_directory / f"{species}_initial_conditions.csv",
+                          header=0,
+                          comment="#").values.astype(np.float64)).flatten()
     return ic
 
 
@@ -199,9 +201,10 @@ def strat_lifetime_tune(project_path, species, target_lifetime=None):
     species : str
         Species name (e.g. 'CFC-11')
     """
+
     # TODO: Add other lifetimes in here
     if not target_lifetime:
-        ltdf = pd.read_csv(py12box_path / "inputs/lifetimes.csv", comment="#", index_col=0)
+        ltdf = pd.read_csv(get_data("inputs/lifetimes.csv"), comment="#", index_col=0)
         target_lifetime = ltdf.loc[species][0]
 
     if not os.path.isfile(project_path / f"{species}_lifetime.csv"):    
@@ -216,7 +219,7 @@ def strat_lifetime_tune(project_path, species, target_lifetime=None):
         raise Exception("Error: only works with annually repeating lifetimes at the moment")
 
 
-    strat_invlifetime_relative = np.load(py12box_path / "inputs/strat_invlifetime_relative.npy")
+    strat_invlifetime_relative = np.load(get_data("inputs/strat_invlifetime_relative.npy"))
 
     nyears = 1000
 
@@ -247,18 +250,5 @@ def strat_lifetime_tune(project_path, species, target_lifetime=None):
     return df #.to_csv(project_path / f"{species}_lifetime.csv", index=False)
 
 
-def emissions_write(time, emissions,
-                    project=None,
-                    case=None,
-                    species=None):
-    '''
-    Write emissions file
-
-    Args:
-        time: N-element pandas datetime for start of each emissions time period
-        emissions: 4 x N element array of emissions values in Gg
-    '''
-
-    # TODO: FINISH THIS
 
 

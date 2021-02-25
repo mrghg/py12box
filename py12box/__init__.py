@@ -16,6 +16,9 @@ def get_data(sub_path):
         pathlib Path to data folder/file
     """
     
+    if sub_path[0] == "/":
+        raise "sub-path can't begin with '/'"
+
     data_path = _ROOT / "data" / sub_path
 
     return data_path
