@@ -26,7 +26,7 @@ def test_get_emissions():
 
 def test_get_lifetime():
     lifetime = startup.get_lifetime("CFC-11",
-                                    get_data("/example/CFC-11"), n_years=4)
+                                    get_data("example/CFC-11"), n_years=4)
     assert lifetime[0, 8] == 36.878456
     assert lifetime.shape == (12*4, 12)
 
