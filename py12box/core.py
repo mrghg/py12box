@@ -1,41 +1,39 @@
-# -*- coding: utf-8 -*-
 """
-core.py
-AGAGE Box model
+Copyright 2021 Matt Rigby
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Copyright 2020 Eunchong Chung
+
+Permission is hereby granted, free of charge, to any person obtaining 
+a copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation the 
+rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included 
+in all copies or substantial portions of the Software.
+
 
 The model calculates semi-hemispheric monthly average mole fractions, based on
 given emissions, stratospheric and oceanic lifetimes and sink reaction rates.
 
-This code started as a python 3 port of the IDL code written by Matt Rigby
-available from: https://bitbucket.org/mrghg/agage-12-box-model/
-
-Major differences include:
-    01. Aside from model_transport_matrix function, the model is flexible to
-        have any number of boxes, not just 12(3x4).
-    02. All scaling must be preprocessed. The model does not take scaling
-        factors
-    03. Lifetime is monthly not seasonal.
-
-Usage:
-    01. Can be imported to a python script or ipython session
-            import agage-box-model.core
-        and run the functions individually.
-
-Notes:
-    01. The text area between import and function definitions are configurable.
-    02. The input .csv files must include linefeeds (\n) as the line-break.
-        Python reader ignores carriage returns (\r) used by old Macs.
-        Windows style (\r\n) is fine.
-
-Initial author: Edward Chung (s1765003@sms.ed.ac.uk)
-Version History
-1.0 20171026    EC  Initial code.
-2.0 20171222    EC  Optimisation and addition of chlorine loss term.
-3.0 20180106    EC  Inclusion of numba.jit.
-3.1 20180116    EC  Function name changes; docstring update;
-                    and use of numpy save files.
-4.0 20180406    EC  Removed ability to run on its own, to become more Pythonic.
+This code started as a python 3 port by Eunchong Chung of the IDL code 
+written by Matt Rigby available from: https://bitbucket.org/mrghg/agage-12-box-model/. 
+It was subsequently modified by Matt Rigby.
 """
+
 from numba import jit, njit
 import numpy as np
 
@@ -189,10 +187,11 @@ def model(ic, q, mol_mass, lifetime,
           F, temp, oh, cl,
           arr_oh=np.array([1.0e-30, -1800.0]),
           arr_cl=np.array([1.0e-30, -1800.0]),
-          dt=2. * 24. * 3600.,
+          dt=2.*24.*3600.,
           mass=5.1170001e+18 * 1000 * np.array([0.125, 0.125, 0.125, 0.125,
                                                 0.075, 0.075, 0.075, 0.075,
-                                                0.050, 0.050, 0.050, 0.050])
+                                                0.050, 0.050, 0.050, 0.050]),
+          nsteps=-1
           ):
     """Main model code
     ic : ndarray
@@ -224,6 +223,9 @@ def model(ic, q, mol_mass, lifetime,
     temp : ndarray
         2d, month x n_box
         Temperature (K).
+    nsteps : int
+        Number of timesteps to run since simulation start (default=-1,
+        which ignores this argument)
 
     Returns
     -------
@@ -243,6 +245,7 @@ def model(ic, q, mol_mass, lifetime,
         3d, (n_resolved_losses+total) x n_months x n_box.
         Lifetimes calculated from individual time steps (year).
     """
+
     # =========================================================================
     #     Set constants
     # =========================================================================
@@ -272,9 +275,17 @@ def model(ic, q, mol_mass, lifetime,
     # Initial burden (c in g)
     c = ic * 1.0e-12 * mol_mass / mol_m_air * mass  # ppt to g
 
+    # Start and end timesteps
+    # TODO: Allow non-zero start (and restart file)
     start_ti = 0
-    end_ti = n_months * mi_ti
+    if nsteps > 0:
+        end_ti = start_ti + nsteps
+        if end_ti > n_months * mi_ti:
+            end_ti = n_months * mi_ti
+    else:
+        end_ti = n_months * mi_ti
 
+    # In 12-box model world, there are 360 days in a year
     dt_scaled = dt * 365. / 360.
 
     # Loss factors (i.e. independent of c at this stage)

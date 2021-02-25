@@ -1,45 +1,119 @@
-# -*- coding: utf-8 -*-
 """
-util.py
+Copyright 2021 Matt Rigby
 
-Common processes.
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-Initial author: Edward Chung (s1765003@sms.ed.ac.uk)
-Version History
-1.0 20171026    EC  Initial code.
-2.0 20180112    EC  Function updates; docstrings update;
-                    and numpy save file support.
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+
+Copyright 2020 Eunchong Chung
+
+Permission is hereby granted, free of charge, to any person obtaining 
+a copy of this software and associated documentation files (the "Software"),
+to deal in the Software without restriction, including without limitation the 
+rights to use, copy, modify, merge, publish, distribute, sublicense, 
+and/or sell copies of the Software, and to permit persons to whom the 
+Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included 
+in all copies or substantial portions of the Software.
+
+Common processes and helper functions
 """
+
 import numpy as np
 import pandas as pd
-import scipy
-from pyprojroot import here
+from pathlib import Path
 
-import py12box.core as core
-import py12box.startup as setup
+from py12box import startup, core, get_data
 
 
-def io_r_csv(fpath, fmt="np"):
-    '''Read csv file
+def strat_lifetime_tune(target_lifetime, project_path, case, species):
+    """
+    Tune stratospheric lifetime. Updates specified lifetime file with local lifetimes that are consistent with target
+    lifetime.
 
     Parameters
     ----------
-    fpath : file-like object, string, or pathlib.Path
-        Path of the data file.
-    fmt : {"np", "pd"}, optional
-        Format of the output data.
+    target_lifetime : float
+        Global stratospheric lifetime to tune local lifetimes to match
+    project_path : pathlib path
+        Path to project folder (e.g. py12box/example)
+    case : str
+        Case name (e.g. 'CFC-11_example' for py12bpx/example/CFC-11_example)
+    species : str
+        Species name (e.g. 'CFC-11')
+    """
 
-    Returns
-    -------
-    f : ndarray or DataFrame
-        Output data.
+    # TODO: Add other lifetimes in here
 
+    df = pd.read_csv(project_path / case / f"{species}_lifetime.csv")
+
+    if len(df) != 12:
+        raise Exception("Error: only works with annually repeating lifetimes at the moment")
+
+    strat_invlifetime_relative = np.load(get_data("inputs/strat_invlifetime_relative.npy"))
+
+    nyears = 1000
+
+    current_lifetime = target_lifetime / 20.
+
+    for i in range(10):
+        test_lifetime = df[[f"box_{i + 1}" for i in range(12)]].values
+        test_lifetime[:, 8:] = current_lifetime / strat_invlifetime_relative
+        test_lifetime = np.tile(test_lifetime, (nyears, 1))
+
+        ic = np.ones(12) * 10.
+        q = np.zeros((nyears * 12, 12))
+        q[:, 0] = 10.
+
+        # Get model parameters
+        mol_mass, oh_a, oh_er = startup.get_species_parameters(species)
+        i_t, i_v1, t, v1, oh, cl, temperature = startup.get_model_parameters(nyears)
+        F = startup.transport_matrix(i_t, i_v1, t, v1)
+
+        c_month, burden, emissions_out, losses, lifetimes = \
+            core.model(ic=ic, q=q,
+                       mol_mass=mol_mass,
+                       lifetime=test_lifetime,
+                       F=F,
+                       temp=temperature,
+                       cl=cl, oh=oh,
+                       arr_oh=np.array([oh_a, oh_er]))
+
+        print(
+            f"... stratosphere: {lifetimes['global_strat'][-12:].mean()}, total {lifetimes['global_total'][-12:].mean()}")
+
+        lifetime_factor = (1. / target_lifetime) / (1. / lifetimes["global_strat"][-12:]).mean()
+        current_lifetime /= lifetime_factor
+
+    for bi in range(4):
+        df[f"box_{9 + bi}"] = current_lifetime / strat_invlifetime_relative[:, bi]
+
+    df.to_csv(project_path / case / f"{species}_lifetime.csv", index=False)
+
+
+def emissions_write(time, emissions,
+                    project=None,
+                    case=None,
+                    species=None):
     '''
-    f = pd.read_csv(fpath, sep=',', header=0, skipinitialspace=True)
-    if fmt == "np":
-        f = f.values
-        f = np.ascontiguousarray(f)
-    return f
+    Write emissions file
+
+    Args:
+        time: N-element pandas datetime for start of each emissions time period
+        emissions: 4 x N element array of emissions values in Gg
+    '''
+
+    # TODO: FINISH THIS
+
 
 
 def io_r_npy(fpath, mmap_mode='r'):
@@ -80,74 +154,3 @@ def io_r_npz(fpath):
         f = np.ascontiguousarray(d[key])
         yield f
 
-
-def io_r_idlsave(fpath):
-    '''Read IDL save file
-
-    Parameters
-    ----------
-    fpath : file-like object, string, or pathlib.Path
-        Path of the data file.
-
-    Returns
-    -------
-    f : dict
-        Dictionary object containing ndarrays.
-
-    '''
-    f = scipy.io.readsav(fpath, python_dict=True)
-    return f
-
-
-def io_w_csv(fpath, var, output_boxes='all', fmt='%16.8f'):
-    """Write ndarray to csv file
-
-    fpath : file-like object, string, or pathlib.Path
-        Path of the data file.
-    var : ndarray
-        Input data for the file.
-    output_boxes : {'all', 'surface'} or list
-        List of boxes to include in the output.
-    fmt : str
-        Format of the floats.
-
-    """
-    n_box = len(var[0])
-    if output_boxes == 'all':
-        output_boxes = np.arange(0, n_box)
-    elif output_boxes == 'surface':
-        output_boxes = np.arange(0, 4)
-
-    var = var[..., output_boxes]
-
-    header_str = []
-    for i in output_boxes:
-        header_str.append('box_{}'.format(i))
-    header_str = ','.join(header_str)
-
-    np.savetxt(fpath, var, fmt=fmt, delimiter=',', newline='\n',
-               header=header_str, comments='')
-
-
-def io_w_npy(fpath, var):
-    r"""Write ndarray to numpy save file
-
-    fpath : file-like object, string, or pathlib.Path
-        Path of the data file.
-    var : ndarray
-        Input data for the file.
-
-    """
-    np.save(fpath, var, allow_pickle=False)
-
-
-def io_c_csv2npy(fpath1, fpath2):
-    r"""Convert csv file to np save file
-
-    fpath1 : file-like object, string, or pathlib.Path
-        Input csv file.
-    fpath2 : file-like object, string, or pathlib.Path
-        Output npy file.
-
-    """
-    io_w_npy(fpath2, io_r_csv(fpath1))
