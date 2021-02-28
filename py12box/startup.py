@@ -114,7 +114,6 @@ def get_emissions(species, project_directory):
 
 
 def get_lifetime(species, project_directory, n_years):
-    #TODO: have this be calculated online, removing the need for a lifetime file
 
     # Get lifetime
     if not (project_directory / f"{species}_lifetime.csv").exists():
@@ -187,8 +186,8 @@ def transport_matrix(i_t, i_v1, t, v1):
 
 def strat_lifetime_tune(project_path, species, target_lifetime=None):
     """
-    Tune stratospheric lifetime. Updates specified lifetime file with local lifetimes that are consistent with target
-    lifetime.
+    Tune stratospheric lifetime. Updates specified lifetime file with local lifetimes
+    that are consistent with target lifetime.
 
     Parameters
     ----------
