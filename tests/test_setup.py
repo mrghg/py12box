@@ -30,6 +30,14 @@ def test_get_lifetime():
     assert lifetime[0, 8] == 36.878456
     assert lifetime.shape == (12*4, 12)
 
+def test_get_lifetime_nofile():
+    # for now, just get the path to the data directory,
+    # which DOESN'T have a lifetime file in
+    lifetime = startup.get_lifetime("CFC-11",
+                                    get_data("example/CFC-11_nolifetime"), 
+                                    n_years=4)
+
+
 def test_get_initial_conditions():
     ic = startup.get_initial_conditions("CFC-11",
                                         get_data("example/CFC-11"))

@@ -112,8 +112,10 @@ def get_emissions(species, project_directory):
 
     return time, emissions
 
-
-def get_lifetime(species, project_directory, n_years):
+def get_lifetime(species,
+                 project_directory,
+                 n_years):
+    #TODO: project_directory should be an optional input
 
     # Get lifetime
     if not (project_directory / f"{species}_lifetime.csv").exists():
@@ -206,17 +208,16 @@ def strat_lifetime_tune(project_path, species, target_lifetime=None):
         ltdf = pd.read_csv(get_data("inputs/lifetimes.csv"), comment="#", index_col=0)
         target_lifetime = ltdf.loc[species][0]
 
-    if not os.path.isfile(project_path / f"{species}_lifetime.csv"):    
+    if not (project_path / f"{species}_lifetime.csv").exists():    
         ltdict = {"month":np.arange(12).astype(int)+1}
         for i in range(1,13):
             ltdict["box_"+str(i)] = np.ones(12)*1e12 if i < 9 else np.ones(12)*10
         df = pd.DataFrame(ltdict)
-        df.to_csv(project_path / f"{species}_lifetime.csv", index=False)
-
-    df = pd.read_csv(project_path / f"{species}_lifetime.csv")
-    if len(df) != 12:
-        raise Exception("Error: only works with annually repeating lifetimes at the moment")
-
+        #df.to_csv(project_path / f"{species}_lifetime.csv", index=False)
+    else:
+        df = pd.read_csv(project_path / f"{species}_lifetime.csv")
+        if len(df) != 12:
+            raise Exception("Error: only works with annually repeating lifetimes at the moment")
 
     strat_invlifetime_relative = np.load(get_data("inputs/strat_invlifetime_relative.npy"))
 
