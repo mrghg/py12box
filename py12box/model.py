@@ -20,6 +20,7 @@ import numpy as np
 from pathlib import Path
 import time
 from py12box import startup, core, get_data
+import pandas as pd
 
 
 class Model:
@@ -34,7 +35,10 @@ class Model:
     inputs_path = get_data("inputs")
 
     def __init__(self, species, project_directory,
-                 species_param_file=None):
+                 species_param_file=None,
+                 lifetime_strat=None,
+                 lifetime_ocean=None,
+                 lifetime_other_trop=None):
         """Set up model class
 
         Parameters
@@ -64,10 +68,6 @@ class Model:
         self.time = time
         self.emissions = emissions
 
-        # Get lifetime
-        n_years = len(time)
-        self.lifetime = startup.get_lifetime(species, project_directory, n_years)
-
         # Get initial conditions
         self.ic = startup.get_initial_conditions(species, project_directory)
 
@@ -81,9 +81,65 @@ class Model:
         # Transform transport parameters into matrix
         self.F = startup.transport_matrix(_i_t, _i_v1, _t, _v1)
 
+        # Get lifetime
+        n_years = len(time)
+        self.lifetime = startup.get_lifetime(species,
+                                             project_directory,
+                                             n_years)
+
         # Run model for one timestep to compile
         print("Compiling model...")
         self.run(nsteps=1)
+
+
+    def tune_lifetime(self,
+                      lifetime_strat=None,
+                      lifetime_trop=None,
+                      lifetime_ocean=None,
+                      lifetime_relative_strat_file=get_data("inputs/invlifetime_relative_strat.npy")):
+        
+        # Get relative stratospheric lifetime
+        invlifetime_relative_strat = np.load(lifetime_relative_strat_file)
+        #TODO: Add others in
+
+        if lifetime_strat is None:
+            # Get lifetime from species_info.csv
+            # TODO: This is potentially dangerous. We allow a different species_info file in get_species_parameters
+            # Perhaps store the parameter file string in model class, or store the whole row from that file when it is read
+            df = pd.read_csv(get_data("inputs/species_info.csv"),
+                            index_col="Species")
+            lifetime_strat = df["Lifetime stratosphere"][self.species]
+
+        # Start with an initial guess of the stratospheric lifetime
+        current_lifetime_strat = lifetime_strat/20.
+
+        tune_years = 100
+        tune_steps = 10
+
+        for i in range(tune_steps):
+            test_lifetime = np.ones((12, 12))*1e-12
+            test_lifetime[:, 8:] = current_lifetime_strat / invlifetime_relative_strat
+            test_lifetime = np.tile(test_lifetime, (tune_years, 1))
+
+            q = np.zeros((tune_years * 12, 12))
+            test_emissions = np.tile(self.emissions[:12,:], (tune_years, 1))
+
+            mole_fraction_out, burden_out, q_out, losses, global_lifetimes = \
+                core.model(self.ic, test_emissions, self.mol_mass, test_lifetime,
+                            self.F, self.temperature, self.oh, self.cl,
+                            arr_oh=np.array([self.oh_a, self.oh_er]),
+                            mass=self.mass)
+
+            lifetime_factor = (1. / lifetime_strat) / (1. / global_lifetimes["global_strat"][-12:]).mean()
+            current_lifetime_strat /= lifetime_factor
+            
+            print("UPDATED LIFETIME VALUE HERE")
+
+        # Update test_lifetime to reflect last tuning step:
+        out_lifetime = np.ones((12, 12))*1e-12
+        out_lifetime[:, 8:] = current_lifetime_strat / invlifetime_relative_strat
+
+        self.lifetime = np.tile(out_lifetime, (len(self.time), 1))
 
 
     def run(self, nsteps=-1, verbose=True):
@@ -107,6 +163,7 @@ class Model:
                         nsteps=nsteps)
         
         toc = time.time()
+
         if verbose:
             print(f"... done in {toc - tic} s")
 
