@@ -56,8 +56,9 @@ class Model:
         self.project_path = project_directory
 
         # Get species-specific parameters
+        # TODO: make this have a smaller number of outputs!
         mol_mass, oh_a, oh_er, units = startup.get_species_parameters(species,
-                                                                      param_file=species_param_file)
+                                                                         param_file=species_param_file)
         self.mol_mass = mol_mass
         self.oh_a = oh_a
         self.oh_er = oh_er
@@ -81,47 +82,81 @@ class Model:
         # Transform transport parameters into matrix
         self.F = startup.transport_matrix(_i_t, _i_v1, _t, _v1)
 
-        # Get lifetime
-        # n_years = len(time)
-        # self.lifetime = startup.get_lifetime(species,
-        #                                      project_directory,
-        #                                      n_years)
+        # Get strat lifetime
+        print("Tuning lifetime...")
+        if lifetime_strat == None:
+            lifetime_strat_tune = startup.get_species_lifetime(species, "strat")
+        else:
+            lifetime_strat_tune = lifetime_strat
+
+        # Get ocean lifetime
+        if lifetime_ocean == None:
+            lifetime_ocean_tune = startup.get_species_lifetime(species, "ocean")
+        else:
+            lifetime_ocean_tune = lifetime_ocean
+
+        self.tune_lifetime(lifetime_strat_tune,
+                           lifetime_ocean_tune)
 
         # Run model for one timestep to compile
-        print("Compiling model...")
+        #print("Compiling model...")
         #self.run(nsteps=1)
 
 
     def tune_lifetime(self,
-                      lifetime_strat=None,
-                      lifetime_trop=None,
-                      lifetime_ocean=None,
-                      lifetime_relative_strat_file=get_data("inputs/strat_invlifetime_relative.npy")):
+                      lifetime_strat,
+                      lifetime_ocean,
+#                      lifetime_trop=None,
+                      lifetime_relative_strat_file=get_data("inputs/invlifetime_relative_strat.npy")):
         
+        def local_lifetimes(global_lifetime_strat,
+                            global_lifetime_ocean,
+                            n_years
+                            ):
+            # Construct local lifetimes array from global lifetimes
+
+            lifetime_array = np.ones((12, 12))*1e12
+            if global_lifetime_strat < 1e4:
+                lifetime_array[:, 8:] = global_lifetime_strat / invlifetime_relative_strat
+            if global_lifetime_ocean < 1e4:
+                lifetime_array[:, 0:4] = np.repeat([global_lifetime_ocean / invlifetime_relative_ocean],
+                                                    12, axis=0)
+            lifetime_array = np.tile(lifetime_array, (n_years, 1))
+
+            return lifetime_array
+
+        if (lifetime_strat > 1e4) * (lifetime_ocean > 1e4):
+            return
+
         # Get relative stratospheric lifetime
         invlifetime_relative_strat = np.load(lifetime_relative_strat_file)
-        #TODO: Add others in
 
-        if lifetime_strat is None:
-            # Get lifetime from species_info.csv
-            # TODO: This is potentially dangerous. We allow a different species_info file in get_species_parameters
-            # Perhaps store the parameter file string in model class, or store the whole row from that file when it is read
-            df = pd.read_csv(get_data("inputs/species_info.csv"),
-                            index_col="Species")
-            lifetime_strat = df["Lifetime stratosphere"][self.species]
+        # Impose relative ocean loss
+        invlifetime_relative_ocean = np.array([0.18349867, 0.154188985, 0.287281601, 0.375030744])
 
         # Start with an initial guess of the stratospheric lifetime
         current_lifetime_strat = lifetime_strat/20.
+        current_lifetime_ocean = lifetime_ocean/10.
+
+        # start this off at some value bigger than the tolerance of the while loop
+        current_global_lossrate_strat = 1.1/lifetime_strat
+        current_global_lossrate_ocean = 1.1/lifetime_ocean
 
         tune_years = 100
         tune_steps = 10
 
-        for i in range(tune_steps):
-            test_lifetime = np.ones((12, 12))*1e12
-            test_lifetime[:, 8:] = current_lifetime_strat / invlifetime_relative_strat
-            test_lifetime = np.tile(test_lifetime, (tune_years, 1))
+        #for i in range(tune_steps):
+        while not (np.isclose(current_global_lossrate_strat, 1./lifetime_strat, rtol=0.01) and \
+                    np.isclose(current_global_lossrate_ocean, 1./lifetime_ocean, rtol=0.01)):
 
-            test_emissions = np.tile(self.emissions[:12,:], (tune_years, 1))
+            last_lifetime_strat = current_lifetime_strat
+            last_lifetime_ocean = current_lifetime_ocean
+
+            test_lifetime = local_lifetimes(current_lifetime_strat,
+                                            current_lifetime_ocean,
+                                            tune_years)
+
+            test_emissions = np.repeat([self.emissions.mean(axis=0)], tune_years*12, axis=0)
 
             test_oh = np.tile(self.oh[:12,:], (tune_years, 1))
             test_cl = np.tile(self.cl[:12,:], (tune_years, 1))
@@ -131,20 +166,26 @@ class Model:
             mole_fraction_out, burden_out, q_out, losses, global_lifetimes = \
                 core.model(self.ic, test_emissions, self.mol_mass, test_lifetime,
                             test_f, test_temp, test_oh, test_cl,
-                            #self.F, self.temperature, self.oh, self.cl,
                             arr_oh=np.array([self.oh_a, self.oh_er]),
                             mass=self.mass)
 
-            lifetime_factor = (1. / lifetime_strat) / (1. / global_lifetimes["global_strat"][-12:]).mean()
-            current_lifetime_strat /= lifetime_factor
-            
-            print(f"Stratospheric lifetime: {global_lifetimes['global_strat'][-12:].mean()}")
+            current_global_lossrate_strat = (1./global_lifetimes["global_strat"][-12:]).mean()
+            current_global_lossrate_ocean = (1./global_lifetimes["global_othertroplower"][-12:]).mean()
+
+            lifetime_factor_strat = (1. / lifetime_strat) / current_global_lossrate_strat
+            current_lifetime_strat /= lifetime_factor_strat
+
+            lifetime_factor_ocean = (1. / lifetime_ocean) / current_global_lossrate_ocean
+            current_lifetime_ocean /= lifetime_factor_ocean
+
+            print(f"... stratospheric lifetime: {global_lifetimes['global_strat'][-12:].mean()}")
+            print(f"... ocean lifetime: {global_lifetimes['global_othertroplower'][-12:].mean()}")
 
         # Update test_lifetime to reflect last tuning step:
-        out_lifetime = np.ones((12, 12))*1e-12
-        out_lifetime[:, 8:] = current_lifetime_strat / invlifetime_relative_strat
-        
-        self.lifetime = np.tile(out_lifetime, (len(self.time), 1))
+        self.lifetime = local_lifetimes(current_lifetime_strat,
+                                        current_lifetime_ocean,
+                                        int(len(self.time)/12))
+
 
     def run(self, nsteps=-1, verbose=True):
         """Run 12-box model
@@ -171,8 +212,20 @@ class Model:
         if verbose:
             print(f"... done in {toc - tic} s")
 
+        #TODO: Tidier way needed to differentiate input and output lifetimes
+
         self.mf = mole_fraction_out
         self.burden = burden_out
         self.lifetimes = global_lifetimes
         self.losses = losses
         self.emissions_model = q_out
+
+
+if __name__ == "__main__":
+
+    mod = Model("CFC-11", get_data("example/CFC-11"), lifetime_ocean=10000, lifetime_strat=1000000)
+    #tic = time.time()
+    #mod.tune_lifetime(lifetime_strat=57.)
+    #toc = time.time()
+    #print(f"... done in {toc - tic} s")
+    a=1

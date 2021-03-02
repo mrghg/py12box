@@ -22,6 +22,7 @@ import pandas as pd
 from pathlib import Path
 from py12box import core, util, get_data, model
 
+
 def get_species_parameters(species,
                            param_file=None):
     """Get parameters for a specific species (e.g. mol_mass, etc.)
@@ -57,6 +58,50 @@ def get_species_parameters(species,
             df["OH_A"][species], \
             df["OH_ER"][species], \
             unit_strings[df["Unit"][species]]
+
+
+def get_species_lifetime(species,
+                         which_lifetime,
+                         param_file=None):
+    """Get lifetimes for a specific species
+
+    Parameters
+    ----------
+    species : str
+        Species name. Must match species_info.csv
+    which_lifetime : str
+        Either "strat", "ocean" or "trop"
+    param_file : str, optional
+        Name of species info file, by default None, which sets species_info.csv
+
+    Returns
+    -------
+    float
+        Lifetime value
+    """
+
+    if param_file == None:
+        param_file_str = "species_info.csv"
+    else:
+        #TODO: Put this outside the main package
+        param_file_str = param_file
+
+    df = pd.read_csv(get_data("inputs") / param_file_str,
+                     index_col="Species")
+
+    if which_lifetime == "strat":
+        out_lifetime = df["Lifetime stratosphere"][species]
+    elif which_lifetime == "ocean":
+        out_lifetime = df["Lifetime ocean"][species]
+    elif which_lifetime == "trop":
+        out_lifetime = df["Lifetime other troposphere"][species]
+    else:
+        raise Exception("Not a valid input to which_lifetime")
+
+    if not np.isfinite(out_lifetime):
+        return 1e12
+    else:
+        return out_lifetime
 
 
 def zero_initial_conditions():
