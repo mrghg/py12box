@@ -82,14 +82,14 @@ class Model:
         self.F = startup.transport_matrix(_i_t, _i_v1, _t, _v1)
 
         # Get lifetime
-        n_years = len(time)
-        self.lifetime = startup.get_lifetime(species,
-                                             project_directory,
-                                             n_years)
+        # n_years = len(time)
+        # self.lifetime = startup.get_lifetime(species,
+        #                                      project_directory,
+        #                                      n_years)
 
         # Run model for one timestep to compile
         print("Compiling model...")
-        self.run(nsteps=1)
+        #self.run(nsteps=1)
 
 
     def tune_lifetime(self,
@@ -117,23 +117,28 @@ class Model:
         tune_steps = 10
 
         for i in range(tune_steps):
-            test_lifetime = np.ones((12, 12))*1e-12
+            test_lifetime = np.ones((12, 12))*1e12
             test_lifetime[:, 8:] = current_lifetime_strat / invlifetime_relative_strat
             test_lifetime = np.tile(test_lifetime, (tune_years, 1))
 
-            q = np.zeros((tune_years * 12, 12))
             test_emissions = np.tile(self.emissions[:12,:], (tune_years, 1))
+
+            test_oh = np.tile(self.oh[:12,:], (tune_years, 1))
+            test_cl = np.tile(self.cl[:12,:], (tune_years, 1))
+            test_temp = np.tile(self.temperature[:12,:], (tune_years, 1))
+            test_f = np.tile(self.F[:12,:, :], (tune_years, 1, 1))
 
             mole_fraction_out, burden_out, q_out, losses, global_lifetimes = \
                 core.model(self.ic, test_emissions, self.mol_mass, test_lifetime,
-                            self.F, self.temperature, self.oh, self.cl,
+                            test_f, test_temp, test_oh, test_cl,
+                            #self.F, self.temperature, self.oh, self.cl,
                             arr_oh=np.array([self.oh_a, self.oh_er]),
                             mass=self.mass)
 
             lifetime_factor = (1. / lifetime_strat) / (1. / global_lifetimes["global_strat"][-12:]).mean()
             current_lifetime_strat /= lifetime_factor
             
-            print("UPDATED LIFETIME VALUE HERE")
+            print(f"Stratospheric lifetime: {global_lifetimes['global_strat'][-12:].mean()}")
 
         # Update test_lifetime to reflect last tuning step:
         out_lifetime = np.ones((12, 12))*1e-12
@@ -172,5 +177,3 @@ class Model:
         self.lifetimes = global_lifetimes
         self.losses = losses
         self.emissions_model = q_out
-
-
