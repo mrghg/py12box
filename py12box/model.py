@@ -83,10 +83,13 @@ class Model:
 
         # Get lifetime
         n_years = len(time)
-        self.lifetime = startup.get_lifetime(species,
-                                             project_directory,
-                                             n_years)
-
+        #self.lifetime = startup.get_lifetime(species,
+        #                                     project_directory,
+        #                                     n_years)
+        self.lifetime = self.tune_lifetime(lifetime_strat=lifetime_strat,
+                        lifetime_trop=lifetime_other_trop,
+                        lifetime_ocean=lifetime_ocean)
+        
         # Run model for one timestep to compile
         print("Compiling model...")
         self.run(nsteps=1)
@@ -96,7 +99,7 @@ class Model:
                       lifetime_strat=None,
                       lifetime_trop=None,
                       lifetime_ocean=None,
-                      lifetime_relative_strat_file=get_data("inputs/invlifetime_relative_strat.npy")):
+                      lifetime_relative_strat_file=get_data("inputs/strat_invlifetime_relative.npy")):
         
         # Get relative stratospheric lifetime
         invlifetime_relative_strat = np.load(lifetime_relative_strat_file)
@@ -138,9 +141,8 @@ class Model:
         # Update test_lifetime to reflect last tuning step:
         out_lifetime = np.ones((12, 12))*1e-12
         out_lifetime[:, 8:] = current_lifetime_strat / invlifetime_relative_strat
-
+        
         self.lifetime = np.tile(out_lifetime, (len(self.time), 1))
-
 
     def run(self, nsteps=-1, verbose=True):
         """Run 12-box model
