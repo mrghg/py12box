@@ -56,7 +56,6 @@ class Model:
         self.project_path = project_directory
 
         # Get species-specific parameters
-        # TODO: make this have a smaller number of outputs!
         mol_mass, oh_a, oh_er, units = startup.get_species_parameters(species,
                                                                          param_file=species_param_file)
         self.mol_mass = mol_mass
@@ -82,8 +81,9 @@ class Model:
         # Transform transport parameters into matrix
         self.F = startup.transport_matrix(_i_t, _i_v1, _t, _v1)
 
-        # Get strat lifetime
-        print("Tuning lifetime...")
+        print("Compiling model and tuning lifetime...")
+
+        # Get strat lifetime        
         if lifetime_strat == None:
             lifetime_strat_tune = startup.get_species_lifetime(species, "strat")
         else:
@@ -97,10 +97,6 @@ class Model:
 
         self.tune_lifetime(lifetime_strat_tune,
                            lifetime_ocean_tune)
-
-        # Run model for one timestep to compile
-        #print("Compiling model...")
-        #self.run(nsteps=1)
 
 
     def tune_lifetime(self,
@@ -128,6 +124,8 @@ class Model:
             return lifetime_array
 
         def run_lifetimes(test_lifetime):
+            # Run model and extract global lifetimes
+
             mole_fraction_out, burden_out, q_out, losses, global_lifetimes = \
                             core.model(self.ic, test_emissions, self.mol_mass, test_lifetime,
                                         test_f, test_temp, test_oh, test_cl,
@@ -213,6 +211,10 @@ class Model:
 
         self.steady_state_lifetime_strat = global_lifetimes['global_strat'][-12:].mean()
         self.steady_state_lifetime_ocean = global_lifetimes['global_othertroplower'][-12:].mean()
+        self.steady_state_lifetime_oh = global_lifetimes['global_oh'][-12:].mean()
+        self.steady_state_lifetime_cl = global_lifetimes['global_cl'][-12:].mean()
+        self.steady_state_lifetime_othertrop = global_lifetimes['global_othertrop'][-12:].mean()
+        self.steady_state_lifetime = global_lifetimes['global_total'][-12:].mean()
 
         if lifetime_strat > threshold:
             print(f"... stratospheric lifetime: 1e12")
@@ -223,6 +225,11 @@ class Model:
             print("... ocean lifetime: 1e12")
         else:
             print(f"... ocean lifetime: {self.steady_state_lifetime_ocean:.1f}")
+
+        if self.steady_state_lifetime > threshold:
+            print("... overall lifetime: 1e12")
+        else:
+            print(f"... overall lifetime: {self.steady_state_lifetime:.1f}")
 
 
     def run(self, nsteps=-1, verbose=True):
