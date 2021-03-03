@@ -221,10 +221,20 @@ class Model:
         else:
             print(f"... stratospheric lifetime: {self.steady_state_lifetime_strat:.1f}")
 
+        if self.steady_state_lifetime_oh > threshold:
+            print(f"... OH lifetime: 1e12")
+        else:
+            print(f"... OH lifetime: {self.steady_state_lifetime_oh:.1f}")
+
         if lifetime_ocean > threshold:
             print("... ocean lifetime: 1e12")
         else:
             print(f"... ocean lifetime: {self.steady_state_lifetime_ocean:.1f}")
+
+        if self.steady_state_lifetime_othertrop > threshold:
+            print(f"... non-OH tropospheric lifetime: 1e12")
+        else:
+            print(f"... non-OH tropospheric lifetime: {self.steady_state_lifetime_othertrop:.1f}")
 
         if self.steady_state_lifetime > threshold:
             print("... overall lifetime: 1e12")
