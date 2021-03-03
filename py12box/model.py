@@ -38,7 +38,7 @@ class Model:
                  species_param_file=None,
                  lifetime_strat=None,
                  lifetime_ocean=None,
-                 lifetime_other_trop=None):
+                 lifetime_trop=None):
         """Set up model class
 
         Parameters
@@ -95,33 +95,40 @@ class Model:
         else:
             lifetime_ocean_tune = lifetime_ocean
 
+        # Get tropospheric lifetime
+        if lifetime_trop == None:
+            lifetime_trop_tune = startup.get_species_lifetime(species, "trop")
+        else:
+            lifetime_trop_tune = lifetime_trop
+
         self.tune_lifetime(lifetime_strat_tune,
-                           lifetime_ocean_tune)
+                           lifetime_ocean_tune,
+                           lifetime_trop_tune)
 
 
     def tune_lifetime(self,
                       lifetime_strat,
                       lifetime_ocean,
-#                      lifetime_trop=None,
+                      lifetime_trop,
                       lifetime_relative_strat_file=get_data("inputs/invlifetime_relative_strat.npy"),
                       threshold=1e4,
                       tune_years=100):
         
-        def local_lifetimes(global_lifetime_strat,
-                            global_lifetime_ocean,
+        def local_lifetimes(lifetime_dict,
                             n_years
                             ):
-            # Construct local lifetimes array from global lifetimes
+            # Construct local lifetimes array from global lifetimes/lossrates
 
-            lifetime_array = np.ones((12, 12))*1e12
-            if global_lifetime_strat < threshold:
-                lifetime_array[:, 8:] = global_lifetime_strat / invlifetime_relative_strat
-            if global_lifetime_ocean < threshold:
-                lifetime_array[:, 0:4] = np.repeat([global_lifetime_ocean / invlifetime_relative_ocean],
-                                                    12, axis=0)
-            lifetime_array = np.tile(lifetime_array, (n_years, 1))
+            lossrate_array = np.ones((12, 12))*1e-12
 
-            return lifetime_array
+            if lifetime_dict["strat"]["target_global_lossrate"] > 1./threshold:
+                lossrate_array[:, 8:] += lifetime_dict["strat"]["current_lossrate"] * lifetime_dict["strat"]["lossrate_relative"]
+            if lifetime_dict["ocean"]["target_global_lossrate"] > 1./threshold:
+                lossrate_array[:, 0:4] += lifetime_dict["ocean"]["current_lossrate"] * lifetime_dict["ocean"]["lossrate_relative"]
+            if lifetime_dict["trop"]["target_global_lossrate"] > 1./threshold:
+                lossrate_array[:, 0:8] += lifetime_dict["trop"]["current_lossrate"] * lifetime_dict["trop"]["lossrate_relative"]
+
+            return np.tile(1./lossrate_array, (n_years, 1))
 
         def run_lifetimes(test_lifetime):
             # Run model and extract global lifetimes
@@ -133,30 +140,41 @@ class Model:
                                         mass=self.mass)
             return global_lifetimes
 
-        if (lifetime_strat > threshold) * (lifetime_ocean > threshold):
-            self.lifetime = local_lifetimes(lifetime_strat, lifetime_ocean, int(len(self.time)/12))
+        def lifetimes_close(lifetime_dict, rtol=0.01):
+            # Are lifetimes all close to the target?
+
+            cl = 0
+            for _, sink_data in lifetime_dict.items():
+                cl += int(np.isclose(sink_data["current_global_lossrate"], sink_data["target_global_lossrate"], rtol=rtol))
+            if cl == len(lifetime_dict.keys()):
+                return True
+            else:
+                return False
+
+        if (lifetime_ocean < threshold) and (lifetime_trop) < threshold:
+            raise Exception("Not yet implemented: you can't have a finite ocean and non-OH tropospheric loss")
+
+        lifetime_data = {"strat": {"lossrate_relative": np.load(lifetime_relative_strat_file),
+                                    "current_lossrate": [1./(lifetime_strat/20.), 1./lifetime_strat][int(lifetime_strat > threshold)], #if above threshold, don't scale
+                                    "current_global_lossrate": 1.1/lifetime_strat,
+                                    "target_global_lossrate": 1./lifetime_strat
+                                    },
+                         "ocean": {"lossrate_relative": np.repeat([np.array([0.18349867, 0.154188985, 0.287281601, 0.375030744])], 12, axis=0),
+                                    "current_lossrate": [1./(lifetime_ocean/10.), 1./lifetime_ocean][int(lifetime_ocean > threshold)],
+                                    "current_global_lossrate": 1.1/lifetime_ocean,
+                                    "target_global_lossrate": 1./lifetime_ocean
+                                    },
+                         "trop": {"lossrate_relative": self.oh[:12,:8]/(self.oh[:12,:8]).sum(),
+                                    "current_lossrate": [1./(lifetime_trop/10.), 1./lifetime_trop][int(lifetime_trop > threshold)],
+                                    "current_global_lossrate": 1.1/lifetime_trop,
+                                    "target_global_lossrate": 1./lifetime_trop
+                                    }
+                        }
+
+        if sum([sink_data["target_global_lossrate"] for _, sink_data in lifetime_data.items()]) < 3./threshold:
+            print("... lifetimes all very large, assuming no loss")
+            self.lifetime = np.tile(np.ones((12, 12))*1e12, (int(len(self.time)/12), 1))
             return
-
-        # Get relative stratospheric lifetime
-        invlifetime_relative_strat = np.load(lifetime_relative_strat_file)
-
-        # Impose relative ocean loss
-        invlifetime_relative_ocean = np.array([0.18349867, 0.154188985, 0.287281601, 0.375030744])
-
-        # Start with an initial guess of the stratospheric lifetime
-        if lifetime_strat < threshold:
-            current_lifetime_strat = lifetime_strat/20.
-        else:
-            current_lifetime_strat = lifetime_strat
-
-        if lifetime_ocean < threshold:
-            current_lifetime_ocean = lifetime_ocean/10.
-        else:
-            current_lifetime_ocean = lifetime_ocean
-
-        # start this off at some value bigger than the tolerance of the while loop
-        current_global_lossrate_strat = 1.1/lifetime_strat
-        current_global_lossrate_ocean = 1.1/lifetime_ocean
 
         # Set up some arrays to run the model
         # Using mean emissions and first year of OH, Cl, temperature and F
@@ -169,44 +187,38 @@ class Model:
         # Keep track of number of iterations, to prevent infinite loop
         counter = 0
 
-        while not (np.isclose(current_global_lossrate_strat, 1./lifetime_strat, rtol=0.01) and \
-                    np.isclose(current_global_lossrate_ocean, 1./lifetime_ocean, rtol=0.01)):
+        while not lifetimes_close(lifetime_data):
 
-            test_lifetime = local_lifetimes(current_lifetime_strat,
-                                            current_lifetime_ocean,
-                                            tune_years)
-
+            test_lifetime = local_lifetimes(lifetime_data, tune_years)
             global_lifetimes = run_lifetimes(test_lifetime)
 
             # Update lifetimes
-            if lifetime_strat < threshold:
-                current_global_lossrate_strat = (1./global_lifetimes["global_strat"][-12:]).mean()
-                lifetime_factor_strat = (1. / lifetime_strat) / current_global_lossrate_strat
-                current_lifetime_strat /= lifetime_factor_strat
-            else:
-                # Satisfy criterion to exit while loop
-                current_global_lossrate_strat = 1./lifetime_strat
-
-            if lifetime_ocean < threshold:
-                current_global_lossrate_ocean = (1./global_lifetimes["global_othertroplower"][-12:]).mean()
-                lifetime_factor_ocean = (1. / lifetime_ocean) / current_global_lossrate_ocean
-                current_lifetime_ocean /= lifetime_factor_ocean
-            else:
-                # Satisfy criterion to exit while loop
-                current_global_lossrate_ocean = 1./lifetime_ocean
+            sinkstr = {"strat": "strat",
+                        "ocean": "othertroplower",
+                        "trop": "othertrop"}
+            
+            for sink, sink_data in lifetime_data.items():
+                if sink_data["target_global_lossrate"] > 1./threshold:
+                    sink_data["current_global_lossrate"] = (1./global_lifetimes["global_" + sinkstr[sink]][-12:]).mean()
+                    lossrate_factor = sink_data["target_global_lossrate"]/sink_data["current_global_lossrate"]
+                    sink_data["current_lossrate"] *= lossrate_factor
+                else:
+                    # Satisfy criterion to exit while loop
+                    sink_data["current_global_lossrate"] = sink_data["target_global_lossrate"]
 
             counter +=1
 
-            if counter == 10:
+            if counter == 50:
                 print("Exiting: lifetime didn't converge")
                 break
 
+        print(f"... completed in {counter} iterations")
+
         # Update test_lifetime to reflect last tuning step:
-        self.lifetime = local_lifetimes(current_lifetime_strat,
-                                        current_lifetime_ocean,
+        self.lifetime = local_lifetimes(lifetime_data,
                                         int(len(self.time)/12))
 
-        global_lifetimes = run_lifetimes(local_lifetimes(current_lifetime_strat, current_lifetime_ocean,
+        global_lifetimes = run_lifetimes(local_lifetimes(lifetime_data,
                                                          tune_years))
 
         self.steady_state_lifetime_strat = global_lifetimes['global_strat'][-12:].mean()
@@ -274,13 +286,3 @@ class Model:
         self.instantaneous_lifetimes = global_lifetimes
         self.losses = losses
         self.emissions_model = q_out
-
-
-if __name__ == "__main__":
-
-    mod = Model("CFC-11", get_data("example/CFC-11"))
-    #tic = time.time()
-    #mod.tune_lifetime(lifetime_strat=57.)
-    #toc = time.time()
-    #print(f"... done in {toc - tic} s")
-    a=1
