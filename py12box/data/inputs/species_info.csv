@@ -1,4 +1,4 @@
-Species,Species string,Molecular mass (g/mol),Unit,GWP,Radiative Efficiency (W/m2/ppb),OH_A,OH_ER,OH_F,OH_G,Lifetime stratosphere (years),Lifetime troposphere (years),Lifetime ocean (years),Lifetime reference
+Species,Species string,Molecular mass (g/mol),Unit,GWP,Radiative Efficiency (W/m2/ppb),OH_A,OH_ER,OH_F,OH_G,Lifetime stratosphere (years),Lifetime other troposphere (years),Lifetime ocean (years),Lifetime reference
 C2F6,C$_2$F$_6$,138.012,ppt,12200,0.26,1.00E-30,-1600,1,100,10000,,,WMO 2018
 C3F8,C$_3$F$_8$,188.0196,ppt,8830,0.26,1.00E-30,-1600,1,100,2600,,,WMO 2018
 C4F10,C$_4$F$_10$,238.027,ppt,8860,0.33,1.00E-30,-1600,1,100,,,,

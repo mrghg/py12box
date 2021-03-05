@@ -90,11 +90,11 @@ def get_species_lifetime(species,
                      index_col="Species")
 
     if which_lifetime == "strat":
-        out_lifetime = df["Lifetime stratosphere"][species]
+        out_lifetime = df["Lifetime stratosphere (years)"][species]
     elif which_lifetime == "ocean":
-        out_lifetime = df["Lifetime ocean"][species]
+        out_lifetime = df["Lifetime ocean (years)"][species]
     elif which_lifetime == "trop":
-        out_lifetime = df["Lifetime other troposphere"][species]
+        out_lifetime = df["Lifetime other troposphere (years)"][species]
     else:
         raise Exception("Not a valid input to which_lifetime")
 
