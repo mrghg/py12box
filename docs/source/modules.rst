@@ -2,6 +2,6 @@ py12box
 =======
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 4
 
-   :autoclass::py12box.model.Model
+   py12box

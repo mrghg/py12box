@@ -26,8 +26,8 @@ Getting started
 
    getting_started.ipynb
 
-Modules
-==============
+py12box package details
+=======================
 
 .. toctree::
    :maxdepth: 2

@@ -14,6 +14,7 @@ def get_data(sub_path):
     -------
     pathlib.Path
         pathlib Path to data folder/file
+    
     """
     
     if sub_path[0] == "/":
