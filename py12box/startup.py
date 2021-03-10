@@ -82,9 +82,14 @@ def get_species_lifetime(species,
         Name of species info file, by default None, which sets species_info.csv
 
     Returns
-    -------
+    ----------
     float
         Lifetime value
+
+    Raises
+    ----------
+    Exception
+        If which_lifetime is not a valid input
     
     """
 
@@ -124,9 +129,12 @@ def zero_initial_conditions():
     """
 
     icdict = {}
+
     for i in range(1,13):
         icdict["box_"+str(i)] = [1e-12]
+
     df = pd.DataFrame(icdict)
+
     return df
         
 
