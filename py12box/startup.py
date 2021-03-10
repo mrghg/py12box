@@ -20,8 +20,7 @@ import numpy as np
 import os
 import pandas as pd
 from pathlib import Path
-
-from py12box import core, util, get_data
+from py12box import core, util, get_data, model
 
 
 def get_species_parameters(species,
@@ -61,6 +60,63 @@ def get_species_parameters(species,
             unit_strings[df["Unit"][species]]
 
 
+def get_species_lifetime(species,
+                         which_lifetime,
+                         param_file=None):
+    """Get lifetimes for a specific species
+
+    Parameters
+    ----------
+    species : str
+        Species name. Must match species_info.csv
+    which_lifetime : str
+        Either "strat", "ocean" or "trop"
+    param_file : str, optional
+        Name of species info file, by default None, which sets species_info.csv
+
+    Returns
+    -------
+    float
+        Lifetime value
+    """
+
+    if param_file == None:
+        param_file_str = "species_info.csv"
+    else:
+        #TODO: Put this outside the main package
+        param_file_str = param_file
+
+    df = pd.read_csv(get_data("inputs") / param_file_str,
+                     index_col="Species")
+
+    if which_lifetime == "strat":
+        out_lifetime = df["Lifetime stratosphere (years)"][species]
+    elif which_lifetime == "ocean":
+        out_lifetime = df["Lifetime ocean (years)"][species]
+    elif which_lifetime == "trop":
+        out_lifetime = df["Lifetime other troposphere (years)"][species]
+    else:
+        raise Exception("Not a valid input to which_lifetime")
+
+    if not np.isfinite(out_lifetime):
+        return 1e12
+    else:
+        return out_lifetime
+
+
+def zero_initial_conditions():
+    """
+    Make an initial conditions files with all boxes 1e-12
+
+    """
+
+    icdict = {}
+    for i in range(1,13):
+        icdict["box_"+str(i)] = [1e-12]
+    df = pd.DataFrame(icdict)
+    return df
+        
+
 def get_emissions(species, project_directory):
     """Get emissions from project's emissions file
 
@@ -81,16 +137,19 @@ def get_emissions(species, project_directory):
     """
 
     # Get emissions
-    emissions_df = pd.read_csv(project_directory / species / f"{species}_emissions.csv",
-                               header=0, index_col=0,
-                               comment="#")
+    if not os.path.isfile(project_directory / f"{species}_emissions.csv"):
+        raise Exception("There must be an emissions file. Please make one.")
+
+    emissions_df = pd.read_csv(project_directory / f"{species}_emissions.csv",
+                               header=0, index_col=0, comment="#")
+
     time_in = emissions_df.index.values
 
     # Work out time frequency and interpolate, if required
     time_freq = time_in[1] - time_in[0]
     if time_freq == 1:
         # Annual emissions. Interpolate to monthly
-        time = np.arange(time_in[0], time_in[-1] + 1 - 1. / 12, 1 / 12.)
+        time = np.arange(time_in[0], time_in[-1] + 1, 1 / 12.)
         emissions = np.repeat(emissions_df.values, 12, axis=0)
     else:
         # Assume monthly emissions
@@ -100,26 +159,17 @@ def get_emissions(species, project_directory):
     return time, emissions
 
 
-def get_lifetime(species, project_directory, n_years):
-    #TODO: have this be calculated online, removing the need for a lifetime file
-
-    # Get lifetime
-    lifetime_df = pd.read_csv(project_directory / species / f"{species}_lifetime.csv",
-                              header=0, index_col=0,
-                              comment="#")
-    lifetime = np.tile(lifetime_df.values, (n_years, 1))
-
-    return lifetime
-
-
 def get_initial_conditions(species, project_directory):
     #TODO: docstring
 
     # Get initial conditions
-    ic = (pd.read_csv(project_directory / species / f"{species}_initial_conditions.csv",
-                      header=0,
-                      comment="#").values.astype(np.float64)).flatten()
-
+    if not (project_directory / f"{species}_initial_conditions.csv").exists():
+        print("No inital conditions file. \n Assuming zero initial conditions")
+        ic = (zero_initial_conditions().values.astype(np.float64)).flatten()
+    else:
+        ic = (pd.read_csv(project_directory / f"{species}_initial_conditions.csv",
+                          header=0,
+                          comment="#").values.astype(np.float64)).flatten()
     return ic
 
 
@@ -163,3 +213,5 @@ def transport_matrix(i_t, i_v1, t, v1):
                                             t_in=t[mi],
                                             v1_in=v1[mi])
     return F
+
+
