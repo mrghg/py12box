@@ -1,21 +1,3 @@
-"""
-Copyright 2021 Matt Rigby
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-Model startup functions.
-"""
-
 import numpy as np
 import os
 import pandas as pd
@@ -36,8 +18,15 @@ def get_species_parameters(species,
 
     Returns
     -------
-    [type]
-        [description]
+    float
+        Molecular mass
+    float
+        OH "A" Arrhenuis parameter
+    float
+        OH "E/R" Arrhenius parameter
+    float
+        unit (e.g. 1e-12 for ppt)
+
     """
 
     if param_file == None:
@@ -75,9 +64,15 @@ def get_species_lifetime(species,
         Name of species info file, by default None, which sets species_info.csv
 
     Returns
-    -------
+    ----------
     float
         Lifetime value
+
+    Raises
+    ----------
+    Exception
+        If which_lifetime is not a valid input
+    
     """
 
     if param_file == None:
@@ -106,14 +101,22 @@ def get_species_lifetime(species,
 
 def zero_initial_conditions():
     """
-    Make an initial conditions files with all boxes 1e-12
+    Make an initial conditions dataframe with all boxes 1e-12
+
+    Returns
+    -------
+    pandas.DataFrame
+        Dataframe of initial conditions equal to 1e-12
 
     """
 
     icdict = {}
+
     for i in range(1,13):
         icdict["box_"+str(i)] = [1e-12]
+
     df = pd.DataFrame(icdict)
+
     return df
         
 
@@ -130,10 +133,13 @@ def get_emissions(species, project_directory):
 
     Returns
     -------
-    np.array
+    ndarray
+        1d, ntimesteps
         Array containing decimal times (1 x ntimesteps)
-    np.array 
+    ndarray
+        2d, 12 x ntimesteps
         Array containing emissions (12 x ntimesteps)
+
     """
 
     # Get emissions
@@ -160,9 +166,23 @@ def get_emissions(species, project_directory):
 
 
 def get_initial_conditions(species, project_directory):
-    #TODO: docstring
+    """Read initial conditions from file
 
-    # Get initial conditions
+    Parameters
+    ----------
+    species : str
+        Species name
+    project_directory : pathlib.Path
+        Path to project folder, containing <species>_initial_conditions.csv file
+
+    Returns
+    -------
+    ndarray
+        1d, 12
+        Initial conditions in each box
+    
+    """
+
     if not (project_directory / f"{species}_initial_conditions.csv").exists():
         print("No inital conditions file. \n Assuming zero initial conditions")
         ic = (zero_initial_conditions().values.astype(np.float64)).flatten()
@@ -174,9 +194,41 @@ def get_initial_conditions(species, project_directory):
 
 
 def get_model_parameters(n_years, input_dir=get_data("inputs")):
-    #TODO: docstring
-    # Get model parameters
-    ###################################################
+    """Retrieve model transport parameters, OH, Cl and temperature and repeat annually
+
+    Parameters
+    ----------
+    n_years : int
+        Number of years over which to repeat parameters
+    input_dir : pathlib.Path, optional
+        Directory containing parameter files, by default get_data("inputs")
+
+    Returns
+    -------
+    ndarray
+        3d, n_years, n_box_intersections_diffusion x 2
+        Intersections to apply to the mixing timescales for staggered grids.
+    ndarray
+        3d, n_years, n_box_intersections_advection x 2
+        Intersections to apply to the velocity timescales for staggered grids
+        excluding stratosphere.
+    ndarray
+        2d, n_years, n_box_intersections_diffusion
+        Mixing timescales for staggered grids (s).
+    ndarray
+        2d, n_years, n_box_intersections_diffusion_advection
+        Velocity timescales for staggered grids excluding stratosphere (s).
+    ndarray
+        2d, n_years*12, 12
+        OH concentration in each box for each month
+    ndarray
+        2d, n_years*12, 12
+        Cl concentration in each box for each month
+    ndarray
+        2d, n_years*12, 12
+        Temperature in each box for each month
+
+    """
 
     # Get transport parameters and create transport matrix
     i_t, i_v1, t, v1 = \
@@ -186,11 +238,11 @@ def get_model_parameters(n_years, input_dir=get_data("inputs")):
     v1 = np.tile(v1, (int(n_years), 1))
 
     # Get OH
-    OH = np.tile(util.io_r_npy(os.path.join(input_dir, 'OH.npy')),
+    oh = np.tile(util.io_r_npy(os.path.join(input_dir, 'OH.npy')),
                  (int(n_years), 1))
 
     # Get Cl
-    Cl = np.tile(util.io_r_npy(os.path.join(input_dir, 'Cl.npy')),
+    cl = np.tile(util.io_r_npy(os.path.join(input_dir, 'Cl.npy')),
                  (int(n_years), 1))
 
     # Get temperature
@@ -198,11 +250,35 @@ def get_model_parameters(n_years, input_dir=get_data("inputs")):
                                                      'temperature.npy')),
                           (int(n_years), 1))
 
-    return i_t, i_v1, t, v1, OH, Cl, temperature
+    return i_t, i_v1, t, v1, oh, cl, temperature
 
 
 def transport_matrix(i_t, i_v1, t, v1):
-    #TODO: docstring
+    """Construct transport matrix from transport parameters
+
+    Parameters
+    ----------
+    i_t : ndarray
+        3d, n_years x n_box_intersections_diffusion x 2
+        Intersections to apply to the mixing timescales for staggered grids.
+    i_v1 : ndarray
+        3d, n_years x n_box_intersections_advection x 2
+        Intersections to apply to the velocity timescales for staggered grids
+        excluding stratosphere.
+    t : ndarray
+        2d, n_years x n_box_intersections_diffusion
+        Mixing timescales for staggered grids (s).
+    v1 : ndarray
+        2d, n_years x n_box_intersections_diffusion_advection
+        Velocity timescales for staggered grids excluding stratosphere (s).
+
+    Returns
+    -------
+    ndarray
+        n_months x 12 x 12
+        Transport matrix
+    
+    """
 
     n_months = t.shape[0]
     t *= (24.0 * 3600.0)

@@ -1,39 +1,3 @@
-"""
-Copyright 2021 Matt Rigby
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-
-Copyright 2020 Eunchong Chung
-
-Permission is hereby granted, free of charge, to any person obtaining 
-a copy of this software and associated documentation files (the "Software"),
-to deal in the Software without restriction, including without limitation the 
-rights to use, copy, modify, merge, publish, distribute, sublicense, 
-and/or sell copies of the Software, and to permit persons to whom the 
-Software is furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included 
-in all copies or substantial portions of the Software.
-
-
-The model calculates semi-hemispheric monthly average mole fractions, based on
-given emissions, stratospheric and oceanic lifetimes and sink reaction rates.
-
-This code started as a python 3 port by Eunchong Chung of the IDL code 
-written by Matt Rigby available from: https://bitbucket.org/mrghg/agage-12-box-model/. 
-It was subsequently modified by Matt Rigby.
-"""
-
 from numba import jit, njit
 import numpy as np
 
@@ -71,14 +35,15 @@ def model_solver_rk4(chi, F, dt):
 @jit(nopython=True)
 def model_transport_matrix(i_t, i_v1, t_in, v1_in):
     """Calculate transport matrix
+    
     Based on equations in:
-        Cunnold, D. M. et al. (1983).
-        The Atmospheric Lifetime Experiment 3. Lifetime Methodology and
-        Application to Three Years of CFCl3 Data.
-        Journal of Geophysical Research, 88(C13), 8379-8400.
+    Cunnold, D. M. et al. (1983).
+    The Atmospheric Lifetime Experiment 3. Lifetime Methodology and
+    Application to Three Years of CFCl3 Data.
+    Journal of Geophysical Research, 88(C13), 8379-8400.
 
     This function outputs a 12x12 matrix (F), calculated by collecting terms in
-    the full equation scheme written out on doc_F_equation.txt.
+    the full equation scheme written out in doc_F_equation.txt.
     model transport is then calculated as dc/dt=F##c.
 
     Parameters
@@ -194,6 +159,9 @@ def model(ic, q, mol_mass, lifetime,
           nsteps=-1
           ):
     """Main model code
+
+    Parameters
+    ----------
     ic : ndarray
         1d, n_box
         Initial conditions of each boxes (pmol/mol) (~pptv).
@@ -203,26 +171,26 @@ def model(ic, q, mol_mass, lifetime,
         The length of the simulation is determined by the length of q.
     mol_mass : float
         Single value of molecular mass (g/mol).
-    arr_OH, arr_Cl : ndarray
+    lifetime : ndarray
+        2d, n_months x n_box
+        Non-OH first-order lifetimes for each month in each box (years).
+    F : ndarray
+        3d, month x n_box x n_box
+        Transport parameter matrix.
+    temp : ndarray
+        2d, month x n_box
+        Temperature (K).
+    oh, cl : ndarray
+        2d, month x n_box
+        Chlorine and OH radical concentrations (molec cm^-3).
+    arr_OH, arr_Cl : ndarray, optional
         1d, 2
         Arrhenius A and E/R constants for (X + sink) reactions.
     mass : ndarray
         1d, n_box
         Air mass of individual boxes.
-    lifetime : ndarray
-        2d, n_months x n_box
-        Non-OH first-order lifetimes for each month in each box (years).
-    dt : float
+    dt : float, optional
         Delta time (s).
-    F : ndarray
-        3d, month x n_box x n_box
-        Transport parameter matrix.
-    OH, Cl : ndarray
-        2d, month x n_box
-        Chlorine and OH radical concentrations (molec cm^-3).
-    temp : ndarray
-        2d, month x n_box
-        Temperature (K).
     nsteps : int
         Number of timesteps to run since simulation start (default=-1,
         which ignores this argument)
@@ -244,6 +212,7 @@ def model(ic, q, mol_mass, lifetime,
     lifetimes : dict
         3d, (n_resolved_losses+total) x n_months x n_box.
         Lifetimes calculated from individual time steps (year).
+    
     """
 
     # =========================================================================
