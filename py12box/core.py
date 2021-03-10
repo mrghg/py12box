@@ -78,7 +78,7 @@ def model_transport_matrix(i_t, i_v1, t_in, v1_in):
         Journal of Geophysical Research, 88(C13), 8379-8400.
 
     This function outputs a 12x12 matrix (F), calculated by collecting terms in
-    the full equation scheme written out on doc_F_equation.txt.
+    the full equation scheme written out in doc_F_equation.txt.
     model transport is then calculated as dc/dt=F##c.
 
     Parameters
@@ -194,6 +194,9 @@ def model(ic, q, mol_mass, lifetime,
           nsteps=-1
           ):
     """Main model code
+
+    Parameters
+    ----------
     ic : ndarray
         1d, n_box
         Initial conditions of each boxes (pmol/mol) (~pptv).
@@ -203,26 +206,26 @@ def model(ic, q, mol_mass, lifetime,
         The length of the simulation is determined by the length of q.
     mol_mass : float
         Single value of molecular mass (g/mol).
-    arr_OH, arr_Cl : ndarray
+    lifetime : ndarray
+        2d, n_months x n_box
+        Non-OH first-order lifetimes for each month in each box (years).
+    F : ndarray
+        3d, month x n_box x n_box
+        Transport parameter matrix.
+    temp : ndarray
+        2d, month x n_box
+        Temperature (K).
+    oh, cl : ndarray
+        2d, month x n_box
+        Chlorine and OH radical concentrations (molec cm^-3).
+    arr_OH, arr_Cl : ndarray, optional
         1d, 2
         Arrhenius A and E/R constants for (X + sink) reactions.
     mass : ndarray
         1d, n_box
         Air mass of individual boxes.
-    lifetime : ndarray
-        2d, n_months x n_box
-        Non-OH first-order lifetimes for each month in each box (years).
-    dt : float
+    dt : float, optional
         Delta time (s).
-    F : ndarray
-        3d, month x n_box x n_box
-        Transport parameter matrix.
-    OH, Cl : ndarray
-        2d, month x n_box
-        Chlorine and OH radical concentrations (molec cm^-3).
-    temp : ndarray
-        2d, month x n_box
-        Temperature (K).
     nsteps : int
         Number of timesteps to run since simulation start (default=-1,
         which ignores this argument)
@@ -244,6 +247,7 @@ def model(ic, q, mol_mass, lifetime,
     lifetimes : dict
         3d, (n_resolved_losses+total) x n_months x n_box.
         Lifetimes calculated from individual time steps (year).
+    
     """
 
     # =========================================================================

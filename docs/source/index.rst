@@ -26,13 +26,13 @@ Getting started
 
    getting_started.ipynb
 
-API
-===============
+Modules
+==============
 
-.. autoclass:: py12box.model.Model
-   :members:
+.. toctree::
+   :maxdepth: 2
 
-
+   modules
 
 Indices and tables
 ==================

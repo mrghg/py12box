@@ -25,7 +25,18 @@ import pandas as pd
 
 class Model:
     """AGAGE 12-box model class
+    
+    This class contains inputs and outputs of the 12-box model, 
+    for a particular species, emissions, initial conditions, etc.
 
+    Attributes
+    ----------
+    mass : ndarray
+        1d, 12
+        Mass of atmosphere in g in each box
+    inputs_path : pathlib.Path
+        Path to the model parameter input directory
+    
     """
 
     # Mass of the atmosphere
@@ -52,6 +63,7 @@ class Model:
             Path to project directory, which contains emissions, lifetimes, etc.
         species_param_file : str, optional
             Species parameter file. Defaults to data/inputs/species_info.csv, by default None
+        
         """
 
         self.species = species
@@ -107,6 +119,9 @@ class Model:
                            lifetime_ocean_tune,
                            lifetime_trop_tune)
 
+        # Run the model again with the default inputs, for 1 step, to recompile
+        self.run(nsteps=1)
+
 
     def tune_lifetime(self,
                       lifetime_strat,
@@ -115,6 +130,30 @@ class Model:
                       lifetime_relative_strat_file=get_data("inputs/invlifetime_relative_strat.npy"),
                       threshold=1e4,
                       tune_years=100):
+        """Tune the local non-OH lifetimes to a set of given global values
+
+        Parameters
+        ----------
+        lifetime_strat : float
+            Target global steady state stratospheric lifetime (years)
+        lifetime_ocean : float
+            Target global steady state lifetime with respect to ocean uptake (years)
+        lifetime_trop : float
+            Target global steady state lifetime with respect to non-OH tropospheric loss (years)
+        lifetime_relative_strat_file : pathlib, optional
+            File containing monthly relative loss rates in stratospheric boxes, 
+            by default get_data("inputs/invlifetime_relative_strat.npy")
+        threshold : float, optional
+            Above this threshold, lifetimes are ignored, and negligible loss is asssumed (years), by default 1e4
+        tune_years : int, optional
+            Number of years assumed to spin the model up to steady state, by default 100
+
+        Raises
+        -----------
+        Exception
+            If an ocean and tropospheric lifetime are both specified. This isn't implemented yet
+
+        """
         
         def local_lifetimes(lifetime_dict,
                             n_years
@@ -174,51 +213,53 @@ class Model:
                         }
 
         if sum([sink_data["target_global_lossrate"] for _, sink_data in lifetime_data.items()]) < 3./threshold:
+
             print("... lifetimes all very large, assuming no loss")
             self.lifetime = np.tile(np.ones((12, 12))*1e12, (int(len(self.time)/12), 1))
-            return
 
-        # Set up some arrays to run the model
-        # Using mean emissions and first year of OH, Cl, temperature and F
-        test_emissions = np.repeat([self.emissions.mean(axis=0)], tune_years*12, axis=0)
-        test_oh = np.tile(self.oh[:12,:], (tune_years, 1))
-        test_cl = np.tile(self.cl[:12,:], (tune_years, 1))
-        test_temp = np.tile(self.temperature[:12,:], (tune_years, 1))
-        test_f = np.tile(self.F[:12,:, :], (tune_years, 1, 1))
+        else:
 
-        # Keep track of number of iterations, to prevent infinite loop
-        counter = 0
+            # Set up some arrays to run the model
+            # Using mean emissions and first year of OH, Cl, temperature and F
+            test_emissions = np.repeat([self.emissions.mean(axis=0)], tune_years*12, axis=0)
+            test_oh = np.tile(self.oh[:12,:], (tune_years, 1))
+            test_cl = np.tile(self.cl[:12,:], (tune_years, 1))
+            test_temp = np.tile(self.temperature[:12,:], (tune_years, 1))
+            test_f = np.tile(self.F[:12,:, :], (tune_years, 1, 1))
 
-        while not lifetimes_close(lifetime_data):
+            # Keep track of number of iterations, to prevent infinite loop
+            counter = 0
 
-            test_lifetime = local_lifetimes(lifetime_data, tune_years)
-            global_lifetimes = run_lifetimes(test_lifetime)
+            while not lifetimes_close(lifetime_data):
 
-            # Update lifetimes
-            sinkstr = {"strat": "strat",
-                        "ocean": "othertroplower",
-                        "trop": "othertrop"}
-            
-            for sink, sink_data in lifetime_data.items():
-                if sink_data["target_global_lossrate"] > 1./threshold:
-                    sink_data["current_global_lossrate"] = (1./global_lifetimes["global_" + sinkstr[sink]][-12:]).mean()
-                    lossrate_factor = sink_data["target_global_lossrate"]/sink_data["current_global_lossrate"]
-                    sink_data["current_lossrate"] *= lossrate_factor
-                else:
-                    # Satisfy criterion to exit while loop
-                    sink_data["current_global_lossrate"] = sink_data["target_global_lossrate"]
+                test_lifetime = local_lifetimes(lifetime_data, tune_years)
+                global_lifetimes = run_lifetimes(test_lifetime)
 
-            counter +=1
+                # Update lifetimes
+                sinkstr = {"strat": "strat",
+                            "ocean": "othertroplower",
+                            "trop": "othertrop"}
+                
+                for sink, sink_data in lifetime_data.items():
+                    if sink_data["target_global_lossrate"] > 1./threshold:
+                        sink_data["current_global_lossrate"] = (1./global_lifetimes["global_" + sinkstr[sink]][-12:]).mean()
+                        lossrate_factor = sink_data["target_global_lossrate"]/sink_data["current_global_lossrate"]
+                        sink_data["current_lossrate"] *= lossrate_factor
+                    else:
+                        # Satisfy criterion to exit while loop
+                        sink_data["current_global_lossrate"] = sink_data["target_global_lossrate"]
 
-            if counter == 50:
-                print("Exiting: lifetime didn't converge")
-                break
+                counter +=1
 
-        print(f"... completed in {counter} iterations")
+                if counter == 50:
+                    print("Exiting: lifetime didn't converge")
+                    break
 
-        # Update test_lifetime to reflect last tuning step:
-        self.lifetime = local_lifetimes(lifetime_data,
-                                        int(len(self.time)/12))
+            print(f"... completed in {counter} iterations")
+
+            # Update test_lifetime to reflect last tuning step:
+            self.lifetime = local_lifetimes(lifetime_data,
+                                            int(len(self.time)/12))
 
         global_lifetimes = run_lifetimes(local_lifetimes(lifetime_data,
                                                          tune_years))
@@ -265,6 +306,7 @@ class Model:
             Number of timesteps. Ignored if set to a negative value, by default -1
         verbose : bool, optional
             Toggle verbose output, by default True
+        
         """
 
         tic = time.time()
@@ -280,8 +322,6 @@ class Model:
 
         if verbose:
             print(f"... done in {toc - tic} s")
-
-        #TODO: Tidier way needed to differentiate input and output lifetimes
 
         self.mf = mole_fraction_out
         self.burden = burden_out
