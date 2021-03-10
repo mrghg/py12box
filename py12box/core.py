@@ -258,6 +258,18 @@ def model(ic, q, mol_mass, lifetime,
     n_box = len(mass)
 
     # =========================================================================
+    #     Test array sizes
+    # =========================================================================
+    if F.shape[0] != n_months:
+        raise Exception("Error: number of months in F and q don't match")
+    if temp.shape[0] != n_months:
+        raise Exception("Error: number of months in temp and q don't match")
+    if oh.shape[0] != n_months:
+        raise Exception("Error: number of months in oh and q don't match")
+    if cl.shape[0] != n_months:
+        raise Exception("Error: number of months in cl and q don't match")
+
+    # =========================================================================
     #     Process input data
     # =========================================================================
 
