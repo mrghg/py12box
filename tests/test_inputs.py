@@ -6,6 +6,7 @@ from  py12box import startup, get_data
 
 
 def test_get_species_parameters():
+
     mol_mass, oh_a, oh_er, unit = startup.get_species_parameters("CFC-11")
 
     assert np.isclose(mol_mass, 137.3688, rtol=0.001)
@@ -15,6 +16,7 @@ def test_get_species_parameters():
 
 
 def test_get_emissions():
+    
     time, emissions = startup.get_emissions("CFC-11",
                                             get_data("example/CFC-11"))
     
@@ -26,10 +28,18 @@ def test_get_emissions():
 
 
 def test_get_initial_conditions():
+    
     ic = startup.get_initial_conditions("CFC-11",
                                         get_data("example/CFC-11"))
     assert ic[0] == 200.
     assert len(ic) == 12
+
+
+def test_get_lifetime():
+
+    assert np.isclose(startup.get_species_lifetime("CFC-12", "strat"), 102., rtol=0.001)
+    assert np.isclose(startup.get_species_lifetime("CH3CCl3", "ocean"), 94., rtol=0.001)
+    assert np.isclose(startup.get_species_lifetime("H-1211", "trop"), 26.24, rtol=0.001)
 
 
 def test_get_model_parameters():
@@ -59,18 +69,3 @@ def test_get_model_parameters():
     assert F.shape == (24, 12, 12)
     assert F[0, 5, 6] == F[12, 5, 6]
     assert np.isclose(F[2, 2, 2], -3.98587280261696e-07, rtol = 0.0001)
-
-
-def test_model_class():
-
-    box_mod = Model("HFC-134a", get_data("example/HFC-134a"))
-
-    assert np.isclose(box_mod.mol_mass, 102.0311, rtol=0.001)
-    assert np.isclose(box_mod.oh_a, 1.03E-12, rtol=0.001)
-    assert np.isclose(box_mod.oh_er, -1620, rtol=0.001)
-    assert box_mod.units == 1e-12
-
-
-# TODO: Add tests for core model
-if __name__ == "__main__":
-    test_get_lifetime()
