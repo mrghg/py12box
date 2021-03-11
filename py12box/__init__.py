@@ -1,6 +1,6 @@
-from pathlib import Path
+from pathlib import Path as _pth
 
-_ROOT = Path(__file__).parent
+_ROOT = _pth(__file__).parent
 
 def get_data(sub_path):
     """Get path to data files
