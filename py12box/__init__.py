@@ -1,5 +1,7 @@
 from pathlib import Path as _pth
 
+__version__ = "0.1.1"
+
 _ROOT = _pth(__file__).parent
 
 def get_data(sub_path):
@@ -18,7 +20,7 @@ def get_data(sub_path):
     """
     
     if sub_path[0] == "/":
-        raise "sub-path can't begin with '/'"
+        raise Exception("sub-path can't begin with '/'")
 
     data_path = _ROOT / "data" / sub_path
 

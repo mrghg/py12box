@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.1.0' 
+VERSION = '0.1.1' 
 DESCRIPTION = 'AGAGE 12-box model'
 
 with open("README.md", "r") as fh:
@@ -17,9 +17,10 @@ setup(
         author_email="matt.rigby@bristol.ac.uk",
         description=DESCRIPTION,
         long_description=LONG_DESCRIPTION,
+        long_description_content_type='text/markdown',
         packages=["py12box"],
         package_dir={'py12box': 'py12box'},
-        package_data={'py12box': ['data/*']},
+        include_package_data=True,
         url="https://github.com/mrghg/py12box",
         install_requires=requirements,        
         keywords=['python', 'atmosphere', 'greenhouse gas'],
