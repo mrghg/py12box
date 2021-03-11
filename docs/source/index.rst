@@ -32,7 +32,6 @@ py12box package details
 .. toctree::
    :maxdepth: 2
 
-   modules
 
 Indices and tables
 ==================
