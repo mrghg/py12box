@@ -11,7 +11,6 @@ with open('requirements.txt') as f:
 
 # Setting up
 setup(
-       # the name must match the folder name 'verysimplemodule'
         name="py12box", 
         version=VERSION,
         author="Matt Rigby",

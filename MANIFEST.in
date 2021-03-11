@@ -1,5 +1,4 @@
 include README.md
-include requirements.txt
 recursive-include py12box/data *.csv *.npy *.npz
 
 global-exclude *.pickle
