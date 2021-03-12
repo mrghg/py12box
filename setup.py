@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.1.1' 
+VERSION = '0.1.2' 
 DESCRIPTION = 'AGAGE 12-box model'
 
 with open("README.md", "r") as fh:
@@ -29,9 +29,10 @@ setup(
             "Intended Audience :: Science/Research",
             "Programming Language :: Python :: 3",
             "Natural Language :: English",
-            "License :: OSI Approved :: Apache Software License",
+            "License :: OSI Approved :: MIT License",
             "Operating System :: MacOS :: MacOS X",
             "Operating System :: Unix",
+            "Operating System :: Microsoft :: Windows"
         ],
         python_requires=">=3.7"
 )
