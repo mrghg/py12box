@@ -2,11 +2,25 @@
 
 This is a Python version of the AGAGE 12-box model described (first as a 9-box model) in Cunnold et al., 1983. Subsequently modified in Cunnold et al., 1994 and Rigby et al., 2013. This version is based on the IDL version from Rigby et al., 2013. 
 
-This code started as a python 3 port by Eunchong Chung of the IDL code 
-written by Matt Rigby available from: https://bitbucket.org/mrghg/agage-12-box-model/. 
-It was subsequently modified by Matt Rigby.
+This code started as a python 3 port by Eunchong Chung of the IDL code written by Matt Rigby available from: https://bitbucket.org/mrghg/agage-12-box-model/. It was subsequently modified by Matt Rigby.
 
-### References
+## Installation
+
+This code can be installed using conda or pip:
+
+```conda install -c mrghg py12box```
+
+or:
+
+```pip install py12box```
+
+## Getting started
+
+Please read the documentation [here](https://py12box.readthedocs.io/en/latest/index.html).
+
+Also see examples of usage in [this repository](https://github.com/mrghg/py12box) under the "notebooks" folder.
+
+## References
 
 Cunnold, D. M., Prinn, R. G., Rasmussen, R. A., Simmonds, P. G., Alyea, F. N., Cardelino, C. A., Crawford, A. J., Fraser, P. J. and Rosen, R. D.: The Atmospheric Lifetime Experiment 3. Lifetime Methodology and Application to Three Years of CFCl3 Data, Journal of Geophysical Research, 88(C13), 8379–8400, 1983.
 
