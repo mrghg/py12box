@@ -16,6 +16,26 @@ if you have Python 3.7 installed type;
 
     python -V
 
+Installing py12box
+==================
+
+To install using conda:
+
+.. code-block:: bash
+
+    conda install -c mrghg py12box
+
+To install using pip:
+
+.. code-block:: bash
+
+    pip install py12box
+
+If installation has been successful, you should be able to import py12box in python, e.g.:
+
+.. code-block:: python
+
+    import py12box
 
 
 
