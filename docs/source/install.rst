@@ -17,7 +17,7 @@ if you have Python 3.7 installed type;
     python -V
 
 Installing py12box
-==================
+=================================
 
 To install using conda:
 
