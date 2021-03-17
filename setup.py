@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = '0.1.2' 
+VERSION = '0.2.0' 
 DESCRIPTION = 'AGAGE 12-box model'
 
 with open("README.md", "r") as fh:
