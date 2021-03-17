@@ -1,4 +1,6 @@
-year,box_1,box_2,box_3,box_4
+# Made up HFC-134a
+# UNITS: Gg/yr
+year,box_0,box_1,box_2,box_3
 1990,100,10,0,0
 1991,100,10,0,0
 1992,100,10,0,0

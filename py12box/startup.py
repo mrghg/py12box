@@ -142,6 +142,8 @@ def get_emissions(species, project_directory):
 
     """
 
+    #TODO: Add units into this
+
     # Get emissions
     if not os.path.isfile(project_directory / f"{species}_emissions.csv"):
         raise Exception("There must be an emissions file. Please make one.")

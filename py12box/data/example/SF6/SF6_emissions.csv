@@ -1,4 +1,6 @@
-year,box_1,box_2,box_3,box_4
+# Made up SF6 emissions
+# UNITS: Gg/yr
+year,box_0,box_1,box_2,box_3
 1990,10,1,0,0
 1991,10,1,0,0
 1992,10,1,0,0
