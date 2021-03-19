@@ -1,8 +1,9 @@
 import numpy as np
 from pathlib import Path
 import time
-from py12box import startup, core, get_data
 import pandas as pd
+from bisect import bisect
+from py12box import startup, core, get_data
 
 
 class Model:
@@ -33,7 +34,8 @@ class Model:
                  species_param_file=None,
                  lifetime_strat=None,
                  lifetime_ocean=None,
-                 lifetime_trop=None):
+                 lifetime_trop=None,
+                 start_year=None):
         """Set up model class
 
         Parameters
@@ -45,6 +47,10 @@ class Model:
             Path to project directory, which contains emissions, lifetimes, etc.
         species_param_file : str, optional
             Species parameter file. Defaults to data/inputs/species_info.csv, by default None
+        start_year : flt, optional
+            Optional year to start the model run. Must be after first year in emissions file.
+            If specified, model will run using emissions and initial conditions value from file.
+            Initial conditions will be updated to the new start year from model run.
         
         """
 
@@ -103,6 +109,9 @@ class Model:
 
         # Run the model again with the default inputs, for 1 step, to recompile
         self.run(nsteps=1)
+
+        if start_year != None:
+            self.change_start_year(start_year)
 
 
     def tune_lifetime(self,
@@ -277,6 +286,50 @@ class Model:
             print("... overall lifetime: 1e12")
         else:
             print(f"... overall lifetime: {self.steady_state_lifetime:.1f}")
+
+
+    def change_start_year(self, start_year):
+        """Change first model year
+
+        Parameters
+        ----------
+        start_year : flt
+            New first year for simulation
+        """
+
+        if start_year > self.time[0]:
+
+            # If no previous model run, do one for initial conditions
+            if hasattr(self, 'mf'):
+                if not np.isfinite(self.mf[0, 0]):
+                    self.run(verbose=False)
+            else:
+                self.run(verbose=False)
+
+            # Find which timestep to start at
+            ti = bisect(self.time, start_year) - 1
+
+            # Trim input arrays
+            self.time = self.time[ti:]
+            self.emissions = self.emissions[ti:, :]
+            self.lifetime = self.lifetime[ti:, :]
+            self.temperature = self.temperature[ti:, :]
+            self.oh = self.oh[ti:, :]
+            self.cl = self.cl[ti:, :]
+            self.F = self.F[ti:, :, :]
+
+            # Initial conditions
+            # TODO: REALLY NEED TO IMPLEMENT A RESTART FIELD, so that we don't use monthly means
+            self.ic = self.mf[ti, :]   #TODO: use restart value
+            self.mf = self.mf[ti:, :]
+            self.burden = self.burden[ti:, :]
+            self.emissions_model = self.emissions_model[ti:, :]
+            for key, val in self.losses.items():
+                self.losses[key] = val[ti:, :]
+            for key, val in self.instantaneous_lifetimes.items():
+                self.instantaneous_lifetimes[key] = val[ti:]
+        else:
+            raise Exception("Start year is before first year in emissions file")
 
 
     def run(self, nsteps=-1, verbose=True):
