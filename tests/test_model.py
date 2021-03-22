@@ -27,3 +27,45 @@ def test_emissions():
     assert box_mod.emissions.shape == (348, 4)
     assert len(box_mod.time) == 348
     assert box_mod.emissions[0, 0] == 100.
+
+
+def test_change_start_year():
+
+    box_mod.change_start_year(2000.)
+    assert box_mod.time.shape[0] == int(np.round((box_mod.time[-1] - 2000.)*12) + 1)
+    assert np.round(box_mod.time[0]) == 2000.
+    assert box_mod.time.shape[0] == box_mod.emissions.shape[0]
+    assert box_mod.time.shape[0] == box_mod.lifetime.shape[0]
+    assert box_mod.time.shape[0] == box_mod.F.shape[0]
+    assert box_mod.time.shape[0] == box_mod.oh.shape[0]
+    assert box_mod.time.shape[0] == box_mod.cl.shape[0]
+    assert box_mod.time.shape[0] == box_mod.temperature.shape[0]
+    if hasattr(box_mod, "mf"):
+        assert box_mod.time.shape[0] == box_mod.mf.shape[0]
+        assert box_mod.time.shape[0] == box_mod.burden.shape[0]
+        for key, val in box_mod.losses.items():
+            assert box_mod.time.shape[0] == val.shape[0]
+        for key, val in box_mod.instantaneous_lifetimes.items():
+            assert box_mod.time.shape[0] == val.shape[0]
+
+def test_change_end_year():
+
+    initial_len = box_mod.time.shape[0]
+    initial_end = box_mod.time[-1]
+
+    box_mod.change_end_year(2010.)
+    assert box_mod.time.shape[0] == initial_len - int(np.round((initial_end - 2010.)*12)) - 1
+    assert np.isclose(box_mod.time[-1], 2010. - 1./12.)
+    assert box_mod.time.shape[0] == box_mod.emissions.shape[0]
+    assert box_mod.time.shape[0] == box_mod.emissions.shape[0]
+    assert box_mod.time.shape[0] == box_mod.F.shape[0]
+    assert box_mod.time.shape[0] == box_mod.oh.shape[0]
+    assert box_mod.time.shape[0] == box_mod.cl.shape[0]
+    assert box_mod.time.shape[0] == box_mod.temperature.shape[0]
+    if hasattr(box_mod, "mf"):
+        assert box_mod.time.shape[0] == box_mod.mf.shape[0]
+        assert box_mod.time.shape[0] == box_mod.burden.shape[0]
+        for key, val in box_mod.losses.items():
+            assert box_mod.time.shape[0] == val.shape[0]
+        for key, val in box_mod.instantaneous_lifetimes.items():
+            assert box_mod.time.shape[0] == val.shape[0]

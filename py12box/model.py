@@ -328,8 +328,44 @@ class Model:
                 self.losses[key] = val[ti:, :]
             for key, val in self.instantaneous_lifetimes.items():
                 self.instantaneous_lifetimes[key] = val[ti:]
+
         else:
-            raise Exception("Start year is before first year in emissions file")
+
+            raise Exception("Start year can't be before first year in emissions file")
+
+
+    def change_end_year(self, end_year):
+        """Change last model year
+
+        Parameters
+        ----------
+        end_year : flt
+            New end year for simulation. 
+            Note that the simulation will be trimmed before the beginning of end_year.
+            I.e. end_year=2001. will curtail the simulation at the end of December 2000.
+        """
+        if float(end_year) < self.time[-1]:
+            # Trim at new end date
+            ti = bisect(self.time, float(end_year)) - 1
+            self.time = self.time[:ti]
+            self.emissions = self.emissions[:ti, :]
+            self.lifetime = self.lifetime[:ti, :]
+            self.temperature = self.temperature[:ti, :]
+            self.oh = self.oh[:ti, :]
+            self.cl = self.cl[:ti, :]
+            self.F = self.F[:ti, :, :]
+
+            # If a model run has previously been carried out, trim those outputs too
+            if hasattr(self, "mf"):
+                self.mf = self.mf[:ti, :]
+                self.burden = self.burden[:ti, :]
+                self.emissions_model = self.emissions_model[:ti, :]
+                for key, val in self.losses.items():
+                    self.losses[key] = val[:ti, :]
+                for key, val in self.instantaneous_lifetimes.items():
+                    self.instantaneous_lifetimes[key] = val[:ti]
+        else:
+            raise Exception("End year can't be after last year in emissions file")
 
 
     def run(self, nsteps=-1, verbose=True):
