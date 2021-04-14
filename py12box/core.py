@@ -197,19 +197,22 @@ def model(ic, q, mol_mass, lifetime,
 
     Returns
     -------
-    c_month : ndarray
+    ndarray
         2d, n_months x output_boxes
-        Mole fractions (pmol/mol).
-    burden : ndarray
+        Monthly mean mole fractions (pmol/mol).
+    ndarray
+        2d, n_months x output_boxes
+        Instantaneous mole fraction at final step of each month (pmol/mol).
+    ndarray
         2d, n_months x n_box
         The monthly-average global burden (g).
-    emissions : ndarray
+    ndarray
         2d, n_months x n_box
         The monthly-average mass emissions (g).
-    losses : ndarray
+    ndarray
         3d, n_resolved_losses x n_months x n_box.
         The monthly-average mass loss (g).
-    lifetimes : dict
+    dict
         3d, (n_resolved_losses+total) x n_months x n_box.
         Lifetimes calculated from individual time steps (year).
     
@@ -281,6 +284,8 @@ def model(ic, q, mol_mass, lifetime,
     # =========================================================================
     #     Output Arrays
     # =========================================================================
+    c_restart = np.zeros((n_months, n_box))
+    
     c_month = np.zeros((n_months, n_box))
     cnt_month = np.zeros((n_months, n_box))
     cnt_global_month = np.zeros(n_months)
@@ -381,6 +386,8 @@ def model(ic, q, mol_mass, lifetime,
         cnt_mi += 1
 
         if mi_ti_cnt == mi_ti - 1:
+            c_restart[mi] = c
+
             # Write Monthly totals for averages
             c_month[mi] = c_mi
             cnt_month[mi] += cnt_mi
@@ -408,6 +415,8 @@ def model(ic, q, mol_mass, lifetime,
 
     mole_fraction_out = np.divide(burden_out / mol_mass * mol_m_air * 1.0e12, mass)  # ppt
 
+    mole_fraction_restart = np.divide(c_restart / mol_mass * mol_m_air * 1.0e12, mass)  # ppt
+
     # Emissions in g
     q_out = q_g * mi_ti  # g
 
@@ -427,4 +436,4 @@ def model(ic, q, mol_mass, lifetime,
                  "cl": lifetime_cl / cnt_month / year_to_sec,
                  "other": lifetime_other / cnt_month / year_to_sec}
 
-    return mole_fraction_out, burden_out, q_out, losses, global_lifetimes
+    return mole_fraction_out, mole_fraction_restart, burden_out, q_out, losses, global_lifetimes

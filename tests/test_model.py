@@ -42,11 +42,13 @@ def test_change_start_year():
     assert box_mod.time.shape[0] == box_mod.temperature.shape[0]
     if hasattr(box_mod, "mf"):
         assert box_mod.time.shape[0] == box_mod.mf.shape[0]
+        assert box_mod.time.shape[0] == box_mod.mf_restart.shape[0]
         assert box_mod.time.shape[0] == box_mod.burden.shape[0]
         for key, val in box_mod.losses.items():
             assert box_mod.time.shape[0] == val.shape[0]
         for key, val in box_mod.instantaneous_lifetimes.items():
             assert box_mod.time.shape[0] == val.shape[0]
+
 
 def test_change_end_year():
 
@@ -64,8 +66,19 @@ def test_change_end_year():
     assert box_mod.time.shape[0] == box_mod.temperature.shape[0]
     if hasattr(box_mod, "mf"):
         assert box_mod.time.shape[0] == box_mod.mf.shape[0]
+        assert box_mod.time.shape[0] == box_mod.mf_restart.shape[0]
         assert box_mod.time.shape[0] == box_mod.burden.shape[0]
         for key, val in box_mod.losses.items():
             assert box_mod.time.shape[0] == val.shape[0]
         for key, val in box_mod.instantaneous_lifetimes.items():
             assert box_mod.time.shape[0] == val.shape[0]
+
+def test_restart():
+
+    assert box_mod.mf_restart.shape == box_mod.mf.shape
+
+    # The restart values should be between the bracketing monthly means
+    assert (box_mod.mf[0,:4].mean() <= box_mod.mf_restart[0,:4].mean() <= box_mod.mf[1,:4].mean()) or \
+            (box_mod.mf[0,:4].mean() >= box_mod.mf_restart[0,:4].mean() >= box_mod.mf[1,:4].mean())
+    assert (box_mod.mf[20,:4].mean() <= box_mod.mf_restart[20,:4].mean() <= box_mod.mf[21,:4].mean()) or \
+            (box_mod.mf[20,:4].mean() >= box_mod.mf_restart[20,:4].mean() >= box_mod.mf[21,:4].mean())
