@@ -297,7 +297,7 @@ class Model:
             New first year for simulation
         """
 
-        if start_year > self.time[0]:
+        if start_year >= self.time[0]:
 
             # If no previous model run, do one for initial conditions
             if hasattr(self, 'mf'):
