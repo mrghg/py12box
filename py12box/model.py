@@ -165,7 +165,7 @@ class Model:
         def run_lifetimes(test_lifetime):
             # Run model and extract global lifetimes
 
-            mole_fraction_out, burden_out, q_out, losses, global_lifetimes = \
+            mole_fraction_out, mole_fraction_restart, burden_out, q_out, losses, global_lifetimes = \
                             core.model(self.ic, test_emissions, self.mol_mass, test_lifetime,
                                         test_f, test_temp, test_oh, test_cl,
                                         arr_oh=np.array([self.oh_a, self.oh_er]),
@@ -319,9 +319,10 @@ class Model:
             self.F = self.F[ti:, :, :]
 
             # Initial conditions
-            # TODO: REALLY NEED TO IMPLEMENT A RESTART FIELD, so that we don't use monthly means
-            self.ic = self.mf[ti, :]   #TODO: use restart value
+            if ti > 0:
+                self.ic = self.mf_restart[ti-1, :]
             self.mf = self.mf[ti:, :]
+            self.mf_restart = self.mf_restart[ti:, :]
             self.burden = self.burden[ti:, :]
             self.emissions_model = self.emissions_model[ti:, :]
             for key, val in self.losses.items():
@@ -358,6 +359,7 @@ class Model:
             # If a model run has previously been carried out, trim those outputs too
             if hasattr(self, "mf"):
                 self.mf = self.mf[:ti, :]
+                self.mf_restart = self.mf_restart[:ti, :]
                 self.burden = self.burden[:ti, :]
                 self.emissions_model = self.emissions_model[:ti, :]
                 for key, val in self.losses.items():
@@ -382,7 +384,7 @@ class Model:
 
         tic = time.time()
 
-        mole_fraction_out, burden_out, q_out, losses, global_lifetimes = \
+        mole_fraction_out, mole_fraction_restart, burden_out, q_out, losses, global_lifetimes = \
             core.model(self.ic, self.emissions, self.mol_mass, self.lifetime,
                         self.F, self.temperature, self.oh, self.cl,
                         arr_oh=np.array([self.oh_a, self.oh_er]),
@@ -395,6 +397,7 @@ class Model:
             print(f"... done in {toc - tic} s")
 
         self.mf = mole_fraction_out
+        self.mf_restart = mole_fraction_restart
         self.burden = burden_out
         self.instantaneous_lifetimes = global_lifetimes
         self.losses = losses
