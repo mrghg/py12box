@@ -156,10 +156,16 @@ def get_emissions(species, project_directory):
     # Work out time frequency and interpolate, if required
     time_freq = time_in[1] - time_in[0]
     if time_freq == 1:
+        # Check for contiguous entries
+        if not np.allclose(time_in[1:]-time_in[:-1],1):
+            raise Exception("Missing or duplicate years in emissions")
         # Annual emissions. Interpolate to monthly
         time = np.arange(time_in[0], time_in[-1] + 1, 1 / 12.)
         emissions = np.repeat(emissions_df.values, 12, axis=0)
     else:
+        # Check for contiguous entries
+        if not np.allclose(time_in[1:]-time_in[:-1],1./12.):
+            raise Exception("Missing or duplicate months in emissions")
         # Assume monthly emissions
         time = time_in.copy()
         emissions = emissions_df.values

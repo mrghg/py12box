@@ -207,7 +207,14 @@ class Model:
 
             print("... lifetimes all very large, assuming no loss")
             self.lifetime = np.tile(np.ones((12, 12))*1e12, (int(len(self.time)/12), 1))
-
+            
+            self.steady_state_lifetime_strat = np.float64(1e12)
+            self.steady_state_lifetime_ocean = np.float64(1e12)
+            self.steady_state_lifetime_oh = np.float64(1e12)
+            self.steady_state_lifetime_cl = np.float64(1e12)
+            self.steady_state_lifetime_othertrop = np.float64(1e12)
+            self.steady_state_lifetime = np.float64(1e12)
+            
         else:
 
             # Set up some arrays to run the model
@@ -252,15 +259,15 @@ class Model:
             self.lifetime = local_lifetimes(lifetime_data,
                                             int(len(self.time)/12))
 
-        global_lifetimes = run_lifetimes(local_lifetimes(lifetime_data,
-                                                         tune_years))
+            global_lifetimes = run_lifetimes(local_lifetimes(lifetime_data,
+                                                             tune_years))
 
-        self.steady_state_lifetime_strat = global_lifetimes['global_strat'][-12:].mean()
-        self.steady_state_lifetime_ocean = global_lifetimes['global_othertroplower'][-12:].mean()
-        self.steady_state_lifetime_oh = global_lifetimes['global_oh'][-12:].mean()
-        self.steady_state_lifetime_cl = global_lifetimes['global_cl'][-12:].mean()
-        self.steady_state_lifetime_othertrop = global_lifetimes['global_othertrop'][-12:].mean()
-        self.steady_state_lifetime = global_lifetimes['global_total'][-12:].mean()
+            self.steady_state_lifetime_strat = global_lifetimes['global_strat'][-12:].mean()
+            self.steady_state_lifetime_ocean = global_lifetimes['global_othertroplower'][-12:].mean()
+            self.steady_state_lifetime_oh = global_lifetimes['global_oh'][-12:].mean()
+            self.steady_state_lifetime_cl = global_lifetimes['global_cl'][-12:].mean()
+            self.steady_state_lifetime_othertrop = global_lifetimes['global_othertrop'][-12:].mean()
+            self.steady_state_lifetime = global_lifetimes['global_total'][-12:].mean()
 
         if lifetime_strat > threshold:
             print(f"... stratospheric lifetime: 1e12")
@@ -296,8 +303,8 @@ class Model:
         start_year : flt
             New first year for simulation
         """
-
-        if start_year >= self.time[0]:
+        
+        if start_year > self.time[0] or np.isclose(start_year, self.time[0]):
 
             # If no previous model run, do one for initial conditions
             if hasattr(self, 'mf'):
@@ -331,7 +338,6 @@ class Model:
                 self.instantaneous_lifetimes[key] = val[ti:]
 
         else:
-
             raise Exception("Start year can't be before first year in emissions file")
 
 
@@ -345,9 +351,11 @@ class Model:
             Note that the simulation will be trimmed before the beginning of end_year.
             I.e. end_year=2001. will curtail the simulation at the end of December 2000.
         """
-        if float(end_year) < self.time[-1]:
+
+        #if float(end_year) < self.time[-1]:
+        if np.isclose(end_year, self.time[-1]) or float(end_year) < self.time[-1]:
             # Trim at new end date
-            ti = bisect(self.time, float(end_year)) - 1
+            ti = bisect(self.time, float(end_year)) #- 1
             self.time = self.time[:ti]
             self.emissions = self.emissions[:ti, :]
             self.lifetime = self.lifetime[:ti, :]
@@ -368,7 +376,6 @@ class Model:
                     self.instantaneous_lifetimes[key] = val[:ti]
         else:
             raise Exception("End year can't be after last year in emissions file")
-
 
     def run(self, nsteps=-1, verbose=True):
         """Run 12-box model
