@@ -47,6 +47,12 @@ class Model:
             Path to project directory, which contains emissions, lifetimes, etc.
         species_param_file : str, optional
             Species parameter file. Defaults to data/inputs/species_info.csv, by default None
+        lifetime_strat : float, optional
+            Stratospheric lifetime in years, by default None
+        lifetime_ocean: float, optional
+            Lifetime with respect to loss to the ocean in years, by default None
+        lifetime_trop : float, optional
+            Lifetime with respect to non-OH tropospheric loss in years (e.g. photolysis), by default None
         start_year : flt, optional
             Optional year to start the model run. Must be after first year in emissions file.
             If specified, model will run using emissions and initial conditions value from file.

@@ -82,3 +82,6 @@ def test_restart():
             (box_mod.mf[0,:4].mean() >= box_mod.mf_restart[0,:4].mean() >= box_mod.mf[1,:4].mean())
     assert (box_mod.mf[20,:4].mean() <= box_mod.mf_restart[20,:4].mean() <= box_mod.mf[21,:4].mean()) or \
             (box_mod.mf[20,:4].mean() >= box_mod.mf_restart[20,:4].mean() >= box_mod.mf[21,:4].mean())
+
+
+#TODO: Write test for SF6
