@@ -407,7 +407,7 @@ class Model:
         toc = time.time()
 
         if verbose:
-            print(f"... done in {toc - tic} s")
+            print(f"... done in {toc - tic:.4f} s")
 
         self.mf = mole_fraction_out
         self.mf_restart = mole_fraction_restart

@@ -192,7 +192,7 @@ def get_initial_conditions(species, project_directory):
     """
 
     if not (project_directory / f"{species}_initial_conditions.csv").exists():
-        print("No inital conditions file. \n Assuming zero initial conditions")
+        print("No inital conditions file \n... assuming zero initial conditions")
         ic = (zero_initial_conditions().values.astype(np.float64)).flatten()
     else:
         ic = (pd.read_csv(project_directory / f"{species}_initial_conditions.csv",
