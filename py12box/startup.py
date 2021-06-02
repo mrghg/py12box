@@ -163,9 +163,14 @@ def get_emissions(species, project_directory):
         time = np.arange(time_in[0], time_in[-1] + 1, 1 / 12.)
         emissions = np.repeat(emissions_df.values, 12, axis=0)
     else:
-        # Check for contiguous entries
-        if not np.allclose(time_in[1:]-time_in[:-1],1./12.):
+        # Check for contiguous entries and
+        # Change to decimal year in 1/12ths if otherwise
+        if np.allclose(time_in[1:]-time_in[:-1],1./12., atol=0.0001):
+            if not np.allclose(time_in[1:]-time_in[:-1],1./12.):
+                time_in = np.arange(np.floor(time_in[0]), np.ceil(time_in[-1]), 1./12.)
+        else:
             raise Exception("Missing or duplicate months in emissions")
+        
         # Assume monthly emissions
         time = time_in.copy()
         emissions = emissions_df.values

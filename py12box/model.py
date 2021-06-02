@@ -315,7 +315,6 @@ class Model:
 
             # Find which timestep to start at
             ti = bisect(self.time, start_year) - 1
-
             # Trim input arrays
             self.time = self.time[ti:]
             self.emissions = self.emissions[ti:, :]
@@ -324,7 +323,6 @@ class Model:
             self.oh = self.oh[ti:, :]
             self.cl = self.cl[ti:, :]
             self.F = self.F[ti:, :, :]
-
             # Initial conditions
             if ti > 0:
                 self.ic = self.mf_restart[ti-1, :]
@@ -351,8 +349,6 @@ class Model:
             Note that the simulation will be trimmed before the beginning of end_year.
             I.e. end_year=2001. will curtail the simulation at the end of December 2000.
         """
-
-        #if float(end_year) < self.time[-1]:
         if np.isclose(end_year, self.time[-1]) or float(end_year) < self.time[-1]:
             # Trim at new end date
             ti = bisect(self.time, float(end_year)) #- 1
