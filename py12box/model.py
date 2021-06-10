@@ -345,7 +345,7 @@ class Model:
         """
         if np.isclose(end_year, self.time[-1]) or float(end_year) < self.time[-1]:
             # Trim at new end date
-            ti = bisect(self.time, float(end_year)) #- 1
+            ti = bisect(self.time, float(end_year)) - 1
             self.time = self.time[:ti]
             self.emissions = self.emissions[:ti, :]
             self.lifetime = self.lifetime[:ti, :]
