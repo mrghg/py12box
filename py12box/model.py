@@ -209,72 +209,60 @@ class Model:
                                     }
                         }
 
-        if sum([sink_data["target_global_lossrate"] for _, sink_data in lifetime_data.items()]) < 3./threshold:
+        # Set up some arrays to run the model
+        # Using mean emissions and first year of OH, Cl, temperature and F
+        test_emissions = np.repeat([self.emissions.mean(axis=0)], tune_years*12, axis=0)
+        test_oh = np.tile(self.oh[:12,:], (tune_years, 1))
+        test_cl = np.tile(self.cl[:12,:], (tune_years, 1))
+        test_temp = np.tile(self.temperature[:12,:], (tune_years, 1))
+        test_f = np.tile(self.F[:12,:, :], (tune_years, 1, 1))
 
-            print("... lifetimes all very large, assuming no loss")
-            self.lifetime = np.tile(np.ones((12, 12))*1e12, (int(len(self.time)/12), 1))
+        # Keep track of number of iterations, to prevent infinite loop
+        counter = 0
+
+        while not lifetimes_close(lifetime_data):
+
+            test_lifetime = local_lifetimes(lifetime_data, tune_years)
+            global_lifetimes = run_lifetimes(test_lifetime)
+
+            # Update lifetimes
+            sinkstr = {"strat": "strat",
+                        "ocean": "othertroplower",
+                        "trop": "othertrop"}
             
-            self.steady_state_lifetime_strat = np.float64(1e12)
-            self.steady_state_lifetime_ocean = np.float64(1e12)
-            self.steady_state_lifetime_oh = np.float64(1e12)
-            self.steady_state_lifetime_cl = np.float64(1e12)
-            self.steady_state_lifetime_othertrop = np.float64(1e12)
-            self.steady_state_lifetime = np.float64(1e12)
-            
-        else:
+            for sink, sink_data in lifetime_data.items():
+                if sink_data["target_global_lossrate"] > 1./threshold:
+                    sink_data["current_global_lossrate"] = (1./global_lifetimes["global_" + sinkstr[sink]][-12:]).mean()
+                    lossrate_factor = sink_data["target_global_lossrate"]/sink_data["current_global_lossrate"]
+                    sink_data["current_lossrate"] *= lossrate_factor
+                else:
+                    # Satisfy criterion to exit while loop
+                    sink_data["current_global_lossrate"] = sink_data["target_global_lossrate"]
 
-            # Set up some arrays to run the model
-            # Using mean emissions and first year of OH, Cl, temperature and F
-            test_emissions = np.repeat([self.emissions.mean(axis=0)], tune_years*12, axis=0)
-            test_oh = np.tile(self.oh[:12,:], (tune_years, 1))
-            test_cl = np.tile(self.cl[:12,:], (tune_years, 1))
-            test_temp = np.tile(self.temperature[:12,:], (tune_years, 1))
-            test_f = np.tile(self.F[:12,:, :], (tune_years, 1, 1))
+            counter +=1
 
-            # Keep track of number of iterations, to prevent infinite loop
-            counter = 0
+            if counter == 50:
+                print("Exiting: lifetime didn't converge")
+                break
 
-            while not lifetimes_close(lifetime_data):
+        print(f"... completed in {counter} iterations")
 
-                test_lifetime = local_lifetimes(lifetime_data, tune_years)
-                global_lifetimes = run_lifetimes(test_lifetime)
+        # Update test_lifetime to reflect last tuning step:
+        self.lifetime = local_lifetimes(lifetime_data,
+                                        int(len(self.time)/12))
 
-                # Update lifetimes
-                sinkstr = {"strat": "strat",
-                            "ocean": "othertroplower",
-                            "trop": "othertrop"}
-                
-                for sink, sink_data in lifetime_data.items():
-                    if sink_data["target_global_lossrate"] > 1./threshold:
-                        sink_data["current_global_lossrate"] = (1./global_lifetimes["global_" + sinkstr[sink]][-12:]).mean()
-                        lossrate_factor = sink_data["target_global_lossrate"]/sink_data["current_global_lossrate"]
-                        sink_data["current_lossrate"] *= lossrate_factor
-                    else:
-                        # Satisfy criterion to exit while loop
-                        sink_data["current_global_lossrate"] = sink_data["target_global_lossrate"]
+        global_lifetimes = run_lifetimes(local_lifetimes(lifetime_data,
+                                                            tune_years))
 
-                counter +=1
+        # Store lifetimes
+        self.steady_state_lifetime_strat = global_lifetimes['global_strat'][-12:].mean()
+        self.steady_state_lifetime_ocean = global_lifetimes['global_othertroplower'][-12:].mean()
+        self.steady_state_lifetime_oh = global_lifetimes['global_oh'][-12:].mean()
+        self.steady_state_lifetime_cl = global_lifetimes['global_cl'][-12:].mean()
+        self.steady_state_lifetime_othertrop = global_lifetimes['global_othertrop'][-12:].mean()
+        self.steady_state_lifetime = global_lifetimes['global_total'][-12:].mean()
 
-                if counter == 50:
-                    print("Exiting: lifetime didn't converge")
-                    break
-
-            print(f"... completed in {counter} iterations")
-
-            # Update test_lifetime to reflect last tuning step:
-            self.lifetime = local_lifetimes(lifetime_data,
-                                            int(len(self.time)/12))
-
-            global_lifetimes = run_lifetimes(local_lifetimes(lifetime_data,
-                                                             tune_years))
-
-            self.steady_state_lifetime_strat = global_lifetimes['global_strat'][-12:].mean()
-            self.steady_state_lifetime_ocean = global_lifetimes['global_othertroplower'][-12:].mean()
-            self.steady_state_lifetime_oh = global_lifetimes['global_oh'][-12:].mean()
-            self.steady_state_lifetime_cl = global_lifetimes['global_cl'][-12:].mean()
-            self.steady_state_lifetime_othertrop = global_lifetimes['global_othertrop'][-12:].mean()
-            self.steady_state_lifetime = global_lifetimes['global_total'][-12:].mean()
-
+        # Print outputs
         if lifetime_strat > threshold:
             print(f"... stratospheric lifetime: 1e12")
         else:
