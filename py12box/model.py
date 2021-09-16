@@ -38,26 +38,66 @@ class Model:
                  start_year=None):
         """Set up model class
 
-        Parameters
-        ----------
-        species : str
-            Species name (e.g. "CFC-11")
-            Must match string in data/inputs/species_info.csv
-        project_directory : pathlib.Path
-            Path to project directory, which contains emissions, lifetimes, etc.
-        species_param_file : str, optional
-            Species parameter file. Defaults to data/inputs/species_info.csv, by default None
-        lifetime_strat : float, optional
-            Stratospheric lifetime in years, by default None
-        lifetime_ocean: float, optional
-            Lifetime with respect to loss to the ocean in years, by default None
-        lifetime_trop : float, optional
-            Lifetime with respect to non-OH tropospheric loss in years (e.g. photolysis), by default None
-        start_year : flt, optional
-            Optional year to start the model run. Must be after first year in emissions file.
-            If specified, model will run using emissions and initial conditions value from file.
-            Initial conditions will be updated to the new start year from model run.
-        
+        Parameters:
+            species : str
+                Species name (e.g. "CFC-11")
+                Must match string in data/inputs/species_info.csv
+            project_directory : pathlib.Path
+                Path to project directory, which contains emissions, lifetimes, etc.
+            species_param_file : str, optional
+                Species parameter file. Defaults to data/inputs/species_info.csv, by default None
+            lifetime_strat : float, optional
+                Stratospheric lifetime in years, by default None
+            lifetime_ocean: float, optional
+                Lifetime with respect to loss to the ocean in years, by default None
+            lifetime_trop : float, optional
+                Lifetime with respect to non-OH tropospheric loss in years (e.g. photolysis), by default None
+            start_year : flt, optional
+                Optional year to start the model run. Must be after first year in emissions file.
+                If specified, model will run using emissions and initial conditions value from file.
+                Initial conditions will be updated to the new start year from model run.
+                
+        Returns:
+            self : 
+                returns an instance of self.
+                
+        Attributes:
+            mol_mass : float
+                Molecular mass
+            oh_a :  float
+                OH "A" Arrhenuis parameter
+            oh_er : float
+                OH "E/R" Arrhenuis parameter
+            units : float
+                units for mole fraction (currently all stored at 1e-12 for ppt)
+            time : array
+                Array containing decimal times (1 x ntimesteps)
+            emissions : array
+                Array containing emissions (12 x ntimesteps)
+            ic : array
+                Initial conditions in each box
+            oh : array
+                OH concentration in each box for each month
+            cl : array
+                Cl concentration in each box for each month
+            temperature : 
+                Temperature in each box for each month
+            F : array
+                Transport matrix
+            lifetime : array
+                Global lifetime in each box (years)
+            steady_state_lifetime_strat :
+                Global steady state stratospheric lifetime (years)
+            steady_state_lifetime_ocean : 
+                Global ocean steady state lifetime (years)
+            steady_state_lifetime_oh : 
+                Global steady state lifetime with respect OH loss (years)
+            steady_state_lifetime_cl : 
+                Global steady state lifetime with respect Cl loss (years)
+            steady_state_lifetime_othertrop : 
+                Global steady state lifetime with respect Cl loss (years)
+            steady_state_lifetime :
+                Global steady state lifetime (years)
         """
 
         self.species = species
@@ -370,13 +410,29 @@ class Model:
     def run(self, nsteps=-1, verbose=True):
         """Run 12-box model
 
-        Parameters
-        ----------
-        nsteps : int, optional
-            Number of timesteps. Ignored if set to a negative value, by default -1
-        verbose : bool, optional
-            Toggle verbose output, by default True
+        Parameters:
+            nsteps : int, optional
+                Number of timesteps. Ignored if set to a negative value, by default -1
+            verbose : bool, optional
+                Toggle verbose output, by default True
+                
+        Returns:
+            self : 
+                returns an instance of self.
         
+        Attributes:
+            mf : array
+                Monthly mean mole fractions (pmol/mol).
+            mf_restart : 
+                Instantaneous mole fraction at final step of each month (pmol/mol).
+            burden : array
+                The monthly-average global burden (g).
+            instantaneous_lifetimes : dict
+                Dictionary of monthly instantaneous lifetimes 
+            losses : dict
+                Loss in each box for each month due to OH, Cl and other
+            emissions_model :
+                The monthly-average mass emissions (g).       
         """
 
         tic = time.time()
