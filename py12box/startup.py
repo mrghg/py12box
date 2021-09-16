@@ -25,7 +25,7 @@ def get_species_parameters(species,
     float
         OH "E/R" Arrhenius parameter
     float
-        unit (e.g. 1e-12 for ppt)
+        unit (currently all stored at 1e-12 for ppt)
 
     """
 
@@ -38,15 +38,10 @@ def get_species_parameters(species,
     df = pd.read_csv(get_data("inputs") / param_file_str,
                      index_col="Species")
 
-    unit_strings = {"ppm": 1e-6,
-                    "ppb": 1e-9,
-                    "ppt": 1e-12,
-                    "ppq": 1e-15}
-
     return df["Molecular mass (g/mol)"][species], \
             df["OH_A"][species], \
             df["OH_ER"][species], \
-            unit_strings[df["Unit"][species]]
+            1e-12
 
 
 def get_species_lifetime(species,
@@ -141,9 +136,6 @@ def get_emissions(species, project_directory):
         Array containing emissions (12 x ntimesteps)
 
     """
-
-    #TODO: Add units into this
-
     # Get emissions
     if not os.path.isfile(project_directory / f"{species}_emissions.csv"):
         raise Exception("There must be an emissions file. Please make one.")
