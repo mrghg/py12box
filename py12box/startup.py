@@ -142,9 +142,9 @@ def get_emissions(species, project_directory):
         
     scale_dict = {"Mg/yr":1e-3, "Gg/yr":1, "Tg/yr":1e3, "Pg/yr":1e6, "kt/yr":1}
     with open(project_directory / f"{species}_emissions.csv") as f:
-        header_info = [line.strip() for line in f if line.startswith("# UNITS:")][0]
-    units = [s for s in scale_dict.keys() if s in header_info][0]
+        header_info = [line.strip() for line in f if line.startswith("# UNITS:")]
     if len(header_info) != 0:
+        units = [s for s in scale_dict.keys() if s in header_info[0]][0]
         if units not in scale_dict.keys():
             raise Exception(f"Emissions units not recognised. Must be one of:\n {scale_dict.keys()}")
     else:
@@ -165,7 +165,7 @@ def get_emissions(species, project_directory):
             raise Exception("Missing or duplicate years in emissions")
         # Annual emissions. Interpolate to monthly
         time = np.arange(time_in[0], time_in[-1] + 1, 1 / 12.)
-        emissions = np.repeat(emissions_df.values, 12, axis=0)
+        emissions = np.repeat(emissions_df.values, 12, axis=0)*emissions_scale
     else:
         # Check for contiguous entries and
         # Change to decimal year in 1/12ths if otherwise
@@ -178,7 +178,7 @@ def get_emissions(species, project_directory):
         # Assume monthly emissions
         time = time_in.copy()
         emissions = emissions_df.values*emissions_scale
-
+    
     return time, emissions
 
 
@@ -206,9 +206,9 @@ def get_initial_conditions(species, project_directory):
     else:
         scale_dict = {"ppq":1e-3, "ppt":1, "ppb":1e3, "ppm":1e6}
         with open(project_directory / f"{species}_initial_conditions.csv") as f:
-            header_info = [line.strip() for line in f if line.startswith("# UNITS:")][0]
-        units = [s for s in scale_dict.keys() if s in header_info][0]
+            header_info = [line.strip() for line in f if line.startswith("# UNITS:")]
         if len(header_info) != 0:
+            units = [s for s in scale_dict.keys() if s in header_info[0]][0]
             if units not in scale_dict.keys():
                 raise Exception(f"Initial condition units not recognised. Must be one of:\n {scale_dict.keys()}")
         else:
