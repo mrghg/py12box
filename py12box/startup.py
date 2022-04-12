@@ -25,7 +25,7 @@ def get_species_parameters(species,
     float
         OH "E/R" Arrhenius parameter
     float
-        unit (e.g. 1e-12 for ppt)
+        unit (currently all stored at 1e-12 for ppt)
 
     """
 
@@ -38,15 +38,10 @@ def get_species_parameters(species,
     df = pd.read_csv(get_data("inputs") / param_file_str,
                      index_col="Species")
 
-    unit_strings = {"ppm": 1e-6,
-                    "ppb": 1e-9,
-                    "ppt": 1e-12,
-                    "ppq": 1e-15}
-
     return df["Molecular mass (g/mol)"][species], \
             df["OH_A"][species], \
             df["OH_ER"][species], \
-            unit_strings[df["Unit"][species]]
+            1e-12
 
 
 def get_species_lifetime(species,
@@ -141,12 +136,21 @@ def get_emissions(species, project_directory):
         Array containing emissions (12 x ntimesteps)
 
     """
-
-    #TODO: Add units into this
-
     # Get emissions
     if not os.path.isfile(project_directory / f"{species}_emissions.csv"):
         raise Exception("There must be an emissions file. Please make one.")
+        
+    scale_dict = {"Mg/yr":1e-3, "Gg/yr":1, "Tg/yr":1e3, "Pg/yr":1e6, "kt/yr":1}
+    with open(project_directory / f"{species}_emissions.csv") as f:
+        header_info = [line.strip() for line in f if line.startswith("# UNITS:")]
+    if len(header_info) != 0:
+        units = [s for s in scale_dict.keys() if s in header_info[0]][0]
+        if units not in scale_dict.keys():
+            raise Exception(f"Emissions units not recognised. Must be one of:\n {scale_dict.keys()}")
+    else:
+        print("No units given for emissions. Assuming Gg/yr")
+        units = "Gg/yr"
+    emissions_scale = scale_dict[units]
 
     emissions_df = pd.read_csv(project_directory / f"{species}_emissions.csv",
                                header=0, index_col=0, comment="#")
@@ -161,7 +165,7 @@ def get_emissions(species, project_directory):
             raise Exception("Missing or duplicate years in emissions")
         # Annual emissions. Interpolate to monthly
         time = np.arange(time_in[0], time_in[-1] + 1, 1 / 12.)
-        emissions = np.repeat(emissions_df.values, 12, axis=0)
+        emissions = np.repeat(emissions_df.values, 12, axis=0)*emissions_scale
     else:
         # Check for contiguous entries and
         # Change to decimal year in 1/12ths if otherwise
@@ -173,8 +177,8 @@ def get_emissions(species, project_directory):
         
         # Assume monthly emissions
         time = time_in.copy()
-        emissions = emissions_df.values
-
+        emissions = emissions_df.values*emissions_scale
+    
     return time, emissions
 
 
@@ -200,9 +204,20 @@ def get_initial_conditions(species, project_directory):
         print("No inital conditions file \n... assuming zero initial conditions")
         ic = (zero_initial_conditions().values.astype(np.float64)).flatten()
     else:
+        scale_dict = {"ppq":1e-3, "ppt":1, "ppb":1e3, "ppm":1e6}
+        with open(project_directory / f"{species}_initial_conditions.csv") as f:
+            header_info = [line.strip() for line in f if line.startswith("# UNITS:")]
+        if len(header_info) != 0:
+            units = [s for s in scale_dict.keys() if s in header_info[0]][0]
+            if units not in scale_dict.keys():
+                raise Exception(f"Initial condition units not recognised. Must be one of:\n {scale_dict.keys()}")
+        else:
+            print("No units given for initial conditions. Assuming ppt")
+            units = "ppt"
+        ic_scale = scale_dict[units]
         ic = (pd.read_csv(project_directory / f"{species}_initial_conditions.csv",
                           header=0,
-                          comment="#").values.astype(np.float64)).flatten()
+                          comment="#").values.astype(np.float64)).flatten()*ic_scale
     return ic
 
 
