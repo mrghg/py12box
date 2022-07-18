@@ -1,3 +1,5 @@
+[![DOI](https://zenodo.org/badge/177626527.svg)](https://zenodo.org/badge/latestdoi/177626527)
+
 [![Documentation Status](https://readthedocs.org/projects/py12box/badge/?version=latest)](https://py12box.readthedocs.io/en/latest/?badge=latest)
 
 # AGAGE 12-box model
