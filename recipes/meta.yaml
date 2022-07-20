@@ -4,7 +4,7 @@ package:
 
 source:
   git_url: https://github.com/mrghg/py12box
-  git_rev: 0.2.2
+  git_rev: v0.2.2
   git_depth: 1
 
 build:
@@ -18,9 +18,10 @@ requirements:
     - setuptools
   run:
     - python
-    - numpy
-    - numba
+    - numpy=1.21
+    - numba=0.55
     - scipy
+    - pandas
 
 test:
   imports:
