@@ -1,10 +1,10 @@
 package:
   name: "py12box"
-  version: {{ GIT_DESCRIBE_TAG }}
+  version: 0.2.2
 
 source:
   git_url: https://github.com/mrghg/py12box
-  git_rev: {{ GIT_DESCRIBE_TAG }}
+  git_rev: 0.2.2
   git_depth: 1
 
 build:
@@ -31,3 +31,4 @@ about:
   license: MIT
   license_family: MIT
   summary: AGAGE 12-box model
+  doc_url: https://py12box.readthedocs.io
