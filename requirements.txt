@@ -1,4 +1,0 @@
-numpy
-pandas
-numba==0.55
-scipy
