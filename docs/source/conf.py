@@ -72,4 +72,4 @@ napoleon_use_rtype = True
 napoleon_type_aliases = None
 napoleon_attr_annotations = True
 
-master_doc = 'source/index'
+master_doc = 'index'
