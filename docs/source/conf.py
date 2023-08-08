@@ -22,7 +22,7 @@ copyright = '2021, Matt Rigby'
 author = 'Matt Rigby'
 
 # The full version, including alpha/beta/rc tags
-release = '0.2.0'
+release = '0.2.2'
 
 
 # -- General configuration ---------------------------------------------------
@@ -72,4 +72,4 @@ napoleon_use_rtype = True
 napoleon_type_aliases = None
 napoleon_attr_annotations = True
 
-#master_doc = 'index'
+master_doc = 'index'
