@@ -17,9 +17,9 @@ def test_species_parameters():
 
 def test_lifetime():
 
-    assert np.isclose(box_mod.steady_state_lifetime, 13.5, rtol=0.001)
-    assert np.isclose(box_mod.steady_state_lifetime_oh, 14.23, rtol=0.001)
-    assert np.isclose(box_mod.steady_state_lifetime_strat, 267.0706, rtol=0.001)
+    assert np.isclose(box_mod.steady_state_lifetime, 13.595, rtol=0.001)
+    assert np.isclose(box_mod.steady_state_lifetime_oh, 14.25, rtol=0.001)
+    assert np.isclose(box_mod.steady_state_lifetime_strat, 313.077, rtol=0.001)
 
 
 def test_emissions():

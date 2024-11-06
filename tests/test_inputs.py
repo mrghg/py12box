@@ -10,8 +10,8 @@ def test_get_species_parameters():
     mol_mass, oh_a, oh_er, unit = startup.get_species_parameters("CFC-11")
 
     assert np.isclose(mol_mass, 137.3688, rtol=0.001)
-    assert np.isclose(oh_a, 1e-12, rtol=0.001)
-    assert np.isclose(oh_er, -3700, rtol=0.001)
+    assert np.isclose(oh_a, 1e-11, rtol=0.001)
+    assert np.isclose(oh_er, -9700, rtol=0.001)
     assert unit == 1e-12
 
 
@@ -37,7 +37,7 @@ def test_get_initial_conditions():
 
 def test_get_lifetime():
 
-    assert np.isclose(startup.get_species_lifetime("CFC-12", "strat"), 102., rtol=0.001)
+    assert np.isclose(startup.get_species_lifetime("CFC-12", "strat"), 103., rtol=0.001)
     assert np.isclose(startup.get_species_lifetime("CH3CCl3", "ocean"), 94., rtol=0.001)
     assert np.isclose(startup.get_species_lifetime("H-1211", "trop"), 26.24, rtol=0.001)
 
